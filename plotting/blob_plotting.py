@@ -44,14 +44,13 @@ def plot_clim_count(data,image_desc='',dpi=300,outpath=None,outfileprefix=None,
     plt.show()
 
 def plot_tracks_at_time(track_df,obj_xr,dt,image_desc='',dpi=300,outpath=None,outfileprefix=None,
-                         point_to_track='mass_center_coords',
-                         projection=ccrs.SouthPolarStereo()):
-    track_df_dt=track_df[track_df.time==dt]
-    track_df_todt=track_df[track_df.time<=dt]
+                         time_coord='datetime',point_to_track_lon='centlon',point_to_track_lat='centlat',
+                         projection=ccrs.PlateCarree()):
+    track_df_dt=track_df[track_df[time_coord]==dt]
+    track_df_todt=track_df[track_df[time_coord]<=dt]
     track_id_dt=track_df_dt.track_id.to_list()
-    com_dt=track_df_dt['mass_center_coords'].to_list()
-    xcom_dt=[c[0] for c in com_dt]
-    ycom_dt=[c[1] for c in com_dt]
+    xcom_dt=track_df_dt[point_to_track_lon].to_list()
+    ycom_dt=track_df_dt[point_to_track_lat].to_list()
     obj_xr_dt=obj_xr.sel(time=dt)
         
     ################################################################################################################
@@ -75,9 +74,8 @@ def plot_tracks_at_time(track_df,obj_xr,dt,image_desc='',dpi=300,outpath=None,ou
                   transform=ccrs.PlateCarree())
     for t in track_id_dt:
         track_to_dt=track_df_todt[track_df_todt.track_id==t]
-        track_com=track_to_dt.mass_center_coords.to_list()
-        xtrack_com=[c[0] for c in track_com]
-        ytrack_com=[c[1] for c in track_com]
+        xtrack_com=track_to_dt[point_to_track_lon].to_list()
+        ytrack_com=track_to_dt[point_to_track_lat].to_list()
         ax.plot(xtrack_com,ytrack_com,color='black',linewidth=1,transform=ccrs.Geodetic())
             
     ax.scatter(xcom_dt,ycom_dt,c='black',s=30,transform=ccrs.PlateCarree())

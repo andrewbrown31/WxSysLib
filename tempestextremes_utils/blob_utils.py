@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import xarray as xr
 import numpy as np
+import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from utils.file_utils import write_to_filelist,create_directory,read_filelist
@@ -258,7 +259,7 @@ def read_statBlobs(stat_file):
         # Adjust for the UTC offset
         adjusted_time = time + pd.Timedelta(seconds=offset_seconds)
         
-        return adjusted_time.strftime('%Y-%m-%d %H:%M:%S')
+        return adjusted_time#.strftime('%Y-%m-%d %H:%M:%S')
 
     def insert_after(lst, target, value_to_insert):
         try:
