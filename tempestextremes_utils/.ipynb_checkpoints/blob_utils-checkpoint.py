@@ -20,45 +20,83 @@ def create_Blob_dirstruct(runpath,casename):
     #### Create the statBlobs directory ####
     create_directory(runpath+casename+'/statBlobs')
 
-def run_detectBlobs(input_filelist,detect_filelist,quiet=False,
+def run_detectBlobs(input_filelist,detect_filelist,quiet=False,mpi_np=1,
                     threshold_var="z",threshold_op=">=",threshold_val=1000.0,
                     threshold_dist=0.,geofilterarea_km2=0.0,
                     lonname="longitude",latname="latitude"):
 
-    detectBlob_command =f"{os.environ['TEMPESTEXTREMESDIR']}/DetectBlobs "\
-                    f" --in_data_list \"{input_filelist}\" "\
-                    f" --thresholdcmd \"{threshold_var},{threshold_op},{threshold_val},{threshold_dist} \" "\
-                    f" --geofiltercmd \"area,>=,{geofilterarea_km2}km2\" "\
-                    f" --timefilter \"6hr\" "\
-                    f" --latname \"{latname}\" --lonname \"{lonname}\" " \
-                    f" --out_list \"{detect_filelist}\" "
-                    
-    detectBlob_result = subprocess.run(detectBlob_command, shell=True, capture_output=True, text=True)
+    detectBlob_command = ["mpirun", "-np", f"{int(mpi_np)}",
+                            f"{os.environ['TEMPESTEXTREMESDIR']}/DetectBlobs", 
+                            "--in_data_list",f"{input_filelist}",
+                            "--thresholdcmd",f"{threshold_var},{threshold_op},{threshold_val},{threshold_dist}",
+                            "--geofiltercmd", f"area,>=,{geofilterarea_km2}km2",
+                            "--timefilter", f"6hr",
+                            "--latname", f"{latname}", 
+                            "--lonname", f"{lonname}",
+                            "--out_list", f"{detect_filelist}"
+                            ]
+    
+    # Run the command asynchronously
+    process = subprocess.Popen(detectBlob_command, 
+                               stdout=subprocess.PIPE, 
+                               stderr=subprocess.PIPE, text=True)
+    
+    # Wait for the process to complete and capture output
+    stdout, stderr = process.communicate()
 
+    path,_=os.path.split(detect_filelist)
+    outfile=path+'/detectBlobs_outlog.txt'
+    with open(outfile, 'w') as file:
+        file.write(stdout)
+    outfile=path+'/detectBlobs_errlog.txt'
+    with open(outfile, 'w') as file:
+        file.write(stderr)
+    
     if not quiet:
-        return detectBlob_result
+        return stdout, stderr
 
-def run_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,
+def run_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,mpi_np=1,
                     minsize=1,mintime=1,
+                    minlat=None,maxlat=None,
                     min_overlap_prev=25.,max_overlap_prev=100.,
                     min_overlap_next=25.,max_overlap_next=100.,
                     lonname="longitude",latname="latitude"):
 
-    stitchBlob_command =f"{os.environ['TEMPESTEXTREMESDIR']}/StitchBlobs "\
-                        f" --in_list \"{detect_filelist}\" "\
-                        f" --minsize {minsize} "\
-                        f" --mintime {mintime} "\
-                        f" --min_overlap_prev {min_overlap_prev} "\
-                        f" --max_overlap_prev {max_overlap_prev} "\
-                        f" --min_overlap_next {min_overlap_next} "\
-                        f" --max_overlap_next {max_overlap_next} "\
-                        f" --latname \"{latname}\" --lonname \"{lonname}\" " \
-                        f" --out_list \"{stitch_filelist}\" "
-                    
-    stitchBlob_result = subprocess.run(stitchBlob_command, shell=True, capture_output=True, text=True)
+    stitchBlob_command =["mpirun", "-np", f"{int(mpi_np)}",
+                            f"{os.environ['TEMPESTEXTREMESDIR']}/StitchBlobs", 
+                            "--in_list",f"{detect_filelist}",
+                            "--minsize", f"{minsize}",
+                            "--mintime", f"{mintime}",
+                            "--min_overlap_prev", f"{min_overlap_prev}","--max_overlap_prev", f"{max_overlap_prev}",
+                            "--min_overlap_next", f"{min_overlap_next}","--max_overlap_next", f"{max_overlap_next}",
+                            "--latname", f"{latname}", 
+                            "--lonname", f"{lonname}",
+                            "--out_list", f"{stitch_filelist}"
+                            ]
+    if minlat:
+        stitchBlob_command=stitchBlob_command+["--minlat", f"{minlat}"]
+    if maxlat:
+        stitchBlob_command=stitchBlob_command+["--maxlat", f"{maxlat}"]
 
+    # Run the command asynchronously
+    process = subprocess.Popen(stitchBlob_command, 
+                               stdout=subprocess.PIPE, 
+                               stderr=subprocess.PIPE, text=True)
+    
+    # Wait for the process to complete and capture output
+    stdout, stderr = process.communicate()
+
+    path,_=os.path.split(stitch_filelist)
+    outfile=path+'/stitchBlobs_outlog.txt'
+    with open(outfile, 'w') as file:
+        file.write(stdout)
+    outfile=path+'/stitchBlobs_errlog.txt'
+    with open(outfile, 'w') as file:
+        file.write(stderr)
+    
     if not quiet:
-        return stitchBlob_result
+        print(stdout)
+        print(stderr)
 
 def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_temp, stitchfile_t1_final,var='object_id'):
     """

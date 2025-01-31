@@ -1,27 +1,41 @@
 import numpy as np
 import pandas as pd
+import xarray as xr
 
-import numpy as np
 import cartopy.crs as ccrs
 import scipy.interpolate as interp
 from tqdm import tqdm
 
-def reg_to_polar_nc(infile,outfile,
+def reg_to_polar_nc(infile,outfile,hemis='sh',ratio_new_grid=0.5,outer_data_val=0,
                     var='z',lonname='longitude',latname='latitude'):
     xf=xr.open_dataset(infile)
     grid_original=grid_from_xarray(xf[var])
-    _,grid_polar=make_polar_grid('sh',grid_original,ratio_new_grid=0.5)
-    polar_arr=convert_data_to_polar('sh',grid_polar,grid_original,xf.z_anom,outer_data_val=0)
+    _,grid_polar=make_polar_grid(hemis,grid_original,ratio_new_grid=ratio_new_grid)
+    polar_arr=convert_data_to_polar(hemis,grid_polar,grid_original,xf[var],outer_data_val=outer_data_val)
     
+    # Create xarray DataArray and save
+    #xr.DataArray(
+    #    polar_arr,
+    #    coords={"time": grid_polar['time'], 
+    #            latname: ((latname, lonname), grid_polar['latitude2D']), 
+    #            lonname: ((latname, lonname), grid_polar['longitude2D'])},
+    #    dims=["time", latname, lonname],
+    #    name=var
+    #).to_netcdf(outfile)
+
+    #return grid_polar
+
     # Create xarray DataArray and save
     xr.DataArray(
         polar_arr,
         coords={"time": grid_polar['time'], 
-                latname: ((latname, lonname), grid_polar['latitude2D']), 
-                lonname: ((latname, lonname), grid_polar['longitude2D'])},
-        dims=["time", latname, lonname],
+                "y": np.array(list(range(grid_polar['y'].shape[1]))),
+                "x": np.array(list(range(grid_polar['x'].shape[0]))),
+                latname: (("y", "x"), grid_polar['latitude2D']), 
+                lonname: (("y", "x"), grid_polar['longitude2D'])},
+        dims=["time", "y", "x"],
         name=var
-    ).to_netecdf(outfile)
+    ).to_netcdf(outfile)
 
 def make_polar_grid(hemis, grid_original, transform=ccrs.PlateCarree(),ratio_new_grid=1):
     if hemis == 'nh':
