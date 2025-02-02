@@ -45,10 +45,11 @@ def plot_clim_count(data,image_desc='',dpi=300,outpath=None,outfileprefix=None,
 
 def plot_tracks_at_time(track_df,obj_xr,dt,image_desc='',dpi=300,outpath=None,outfileprefix=None,
                          time_coord='datetime',point_to_track_lon='centlon',point_to_track_lat='centlat',
+                         track_id_coord='bnum',
                          projection=ccrs.PlateCarree()):
     track_df_dt=track_df[track_df[time_coord]==dt]
     track_df_todt=track_df[track_df[time_coord]<=dt]
-    track_id_dt=track_df_dt.track_id.to_list()
+    track_id_dt=track_df_dt[track_id_coord].to_list()
     xcom_dt=track_df_dt[point_to_track_lon].to_list()
     ycom_dt=track_df_dt[point_to_track_lat].to_list()
     obj_xr_dt=obj_xr.sel(time=dt)
@@ -73,7 +74,7 @@ def plot_tracks_at_time(track_df,obj_xr,dt,image_desc='',dpi=300,outpath=None,ou
                   vmin=np.nanmin(obj_xr_dt_nan), vmax=np.nanmax(obj_xr_dt_nan),
                   transform=ccrs.PlateCarree())
     for t in track_id_dt:
-        track_to_dt=track_df_todt[track_df_todt.track_id==t]
+        track_to_dt=track_df_todt[track_df_todt[track_id_coord]==t]
         xtrack_com=track_to_dt[point_to_track_lon].to_list()
         ytrack_com=track_to_dt[point_to_track_lat].to_list()
         ax.plot(xtrack_com,ytrack_com,color='black',linewidth=1,transform=ccrs.Geodetic())

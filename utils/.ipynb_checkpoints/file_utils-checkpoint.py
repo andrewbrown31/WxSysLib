@@ -13,6 +13,39 @@ def create_directory(dir_name):
     except Exception as e:
         print(f"An error occurred: {e}")
 
+def delete_file(file_path):
+    """Deletes the specified file if it exists."""
+    if os.path.isfile(file_path):  # Check if it's a valid file
+        try:
+            os.remove(file_path)
+            print(f"Deleted: {file_path}")
+        except Exception as e:
+            print(f"Error deleting {file_path}: {e}")
+    else:
+        print(f"File '{file_path}' not found.")
+
+def delete_all_files(directory, extension=None):
+    """
+    Deletes all files in the specified directory.
+    
+    Parameters:
+        directory (str): The target directory.
+        extension (str, optional): If provided, only deletes files with this extension (e.g., '.txt').
+    """
+    if not os.path.exists(directory):
+        print(f"Directory '{directory}' does not exist.")
+        return
+    
+    for file_name in os.listdir(directory):
+        file_path = os.path.join(directory, file_name)
+
+        if os.path.isfile(file_path):  # Ensure it's a file
+            if extension is None or file_name.endswith(extension):  # Check extension if specified
+                try:
+                    os.remove(file_path)
+                    print(f"Deleted: {file_path}")
+                except Exception as e:
+                    print(f"Error deleting {file_path}: {e}")
 
 def write_to_filelist(infilenames,outfile):
     with open(outfile, 'w') as file:

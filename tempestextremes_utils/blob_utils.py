@@ -7,96 +7,64 @@ import numpy as np
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
-from utils.file_utils import write_to_filelist,create_directory,read_filelist
+from utils.file_utils import write_to_filelist,create_directory,read_filelist,delete_all_files,delete_file
+from gridding.utils import haversine
 
-
-def create_Blob_dirstruct(runpath,casename):
-    #### Create the case directory ####
-    create_directory(runpath+casename)
-    #### Create the detectBlobs directory ####
-    create_directory(runpath+casename+'/detectBlobs')
-    #### Create the stitchBlobs directory ####
-    create_directory(runpath+casename+'/stitchBlobs')
-    #### Create the statBlobs directory ####
-    create_directory(runpath+casename+'/statBlobs')
-
-def run_detectBlobs(input_filelist,detect_filelist,quiet=False,mpi_np=1,
-                    threshold_var="z",threshold_op=">=",threshold_val=1000.0,
-                    threshold_dist=0.,geofilterarea_km2=0.0,
-                    lonname="longitude",latname="latitude"):
-
-    detectBlob_command = ["mpirun", "-np", f"{int(mpi_np)}",
-                            f"{os.environ['TEMPESTEXTREMESDIR']}/DetectBlobs", 
-                            "--in_data_list",f"{input_filelist}",
-                            "--thresholdcmd",f"{threshold_var},{threshold_op},{threshold_val},{threshold_dist}",
-                            "--geofiltercmd", f"area,>=,{geofilterarea_km2}km2",
-                            "--timefilter", f"6hr",
-                            "--latname", f"{latname}", 
-                            "--lonname", f"{lonname}",
-                            "--out_list", f"{detect_filelist}"
-                            ]
+def separate_blobs_by_closest_cents(df):
+    for b in df.bnum.unique():
+        dtlist=df[df.bnum==b].datetime.unique()
+        for idt,dt in enumerate(dtlist):
+            df_dt=df[df.bnum==b][df[df.bnum==b].datetime==dt]
+            if idt==0:
+                for i,ind in enumerate(df_dt.index.values):
+                   df.loc[ind, "track_id"] = i
+            else:
+                prev_dt=df[df.bnum==b][df[df.bnum==b].datetime==dtlist[idt-1]]
+                closest_points=find_closest_points(prev_dt, df_dt)
+                #if len(closest_points)>1:
+                #    break
+                for pid in closest_points.prev_index.unique():
+                    min_dist=closest_points[closest_points.prev_index==pid]['distance_to_closest'].min()
+                    min_dist_df=closest_points[closest_points['distance_to_closest']==min_dist]
+                    if len(closest_points[closest_points.prev_index==pid])>1:
+                        for cid in closest_points.current_index.unique():
+                            if cid==min_dist_df.current_index.values:
+                                df.loc[cid, "track_id"] = min_dist_df.closest_track_id.values
+                            else:
+                                df.loc[cid, "track_id"] = df[df.bnum==b]['track_id'].max()+1
+                    else:
+                        df.loc[closest_points[closest_points['prev_index']==pid].current_index.values[0], "track_id"] = closest_points[closest_points['prev_index']==pid].closest_track_id.values[0]
     
-    # Run the command asynchronously
-    process = subprocess.Popen(detectBlob_command, 
-                               stdout=subprocess.PIPE, 
-                               stderr=subprocess.PIPE, text=True)
+    df['bnum_merge'] = df.groupby(['bnum', 'track_id']).ngroup()
+                        
+    return df      
+
+def find_closest_points(df1, df2):
+    closest_points = []
+    for i, row2 in df2.iterrows():
+        min_distance = float('inf')
+        closest_index_df1 = None
+        
+        for j, row1 in df1.iterrows():
+            distance = haversine(row2['centlat'], row2['centlon'], row1['centlat'], row1['centlon'])
+            if distance < min_distance:
+                min_distance = distance
+                closest_index_df1 = j
+        
+        # Add closest point data to df2 along with df2 index
+        closest_points.append({
+            "current_index": i,  # Index of the point in df2
+            "closest_centlon": df1.loc[closest_index_df1, "centlon"],
+            "closest_centlat": df1.loc[closest_index_df1, "centlat"],
+            "closest_track_id": df1.loc[closest_index_df1, "track_id"],
+            "prev_index": closest_index_df1,  # Index of closest point in df1
+            "distance_to_closest": min_distance
+        })
     
-    # Wait for the process to complete and capture output
-    stdout, stderr = process.communicate()
-
-    path,_=os.path.split(detect_filelist)
-    outfile=path+'/detectBlobs_outlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stdout)
-    outfile=path+'/detectBlobs_errlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stderr)
+    # Create a new DataFrame with the closest points and their indices
+    closest_df = pd.DataFrame(closest_points)
     
-    if not quiet:
-        return stdout, stderr
-
-def run_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,mpi_np=1,
-                    minsize=1,mintime=1,
-                    minlat=None,maxlat=None,
-                    min_overlap_prev=25.,max_overlap_prev=100.,
-                    min_overlap_next=25.,max_overlap_next=100.,
-                    lonname="longitude",latname="latitude"):
-
-    stitchBlob_command =["mpirun", "-np", f"{int(mpi_np)}",
-                            f"{os.environ['TEMPESTEXTREMESDIR']}/StitchBlobs", 
-                            "--in_list",f"{detect_filelist}",
-                            "--minsize", f"{minsize}",
-                            "--mintime", f"{mintime}",
-                            "--min_overlap_prev", f"{min_overlap_prev}","--max_overlap_prev", f"{max_overlap_prev}",
-                            "--min_overlap_next", f"{min_overlap_next}","--max_overlap_next", f"{max_overlap_next}",
-                            "--latname", f"{latname}", 
-                            "--lonname", f"{lonname}",
-                            "--out_list", f"{stitch_filelist}"
-                            ]
-    if minlat:
-        stitchBlob_command=stitchBlob_command+["--minlat", f"{minlat}"]
-    if maxlat:
-        stitchBlob_command=stitchBlob_command+["--maxlat", f"{maxlat}"]
-
-    # Run the command asynchronously
-    process = subprocess.Popen(stitchBlob_command, 
-                               stdout=subprocess.PIPE, 
-                               stderr=subprocess.PIPE, text=True)
-    
-    # Wait for the process to complete and capture output
-    stdout, stderr = process.communicate()
-
-    path,_=os.path.split(stitch_filelist)
-    outfile=path+'/stitchBlobs_outlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stdout)
-    outfile=path+'/stitchBlobs_errlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stderr)
-    
-    if not quiet:
-        print(stdout)
-        print(stderr)
+    return closest_df
 
 def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_temp, stitchfile_t1_final,var='object_id'):
     """
@@ -264,40 +232,86 @@ def run_and_connect_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,
         os.remove(stitch_filenames_temp[0])
         os.remove(stitch_filenames_temp[1])
 
-def run_statBlobs(stitch_filelist,stat_file,quiet=False,
-                  var='object_id',lonname="longitude",latname="latitude",
-                  outstats='minlat,maxlat,minlon,maxlon,centlon,centlat,area'):
+def lon_convert(lon):
+    dist_from_180 = lon - 180.0
+    return np.where(dist_from_180 < 0, lon, -(180 - dist_from_180))
 
-    statBlob_command =f"{os.environ['TEMPESTEXTREMESDIR']}/BlobStats "\
-                        f" --in_list \"{stitch_filelist}\" "\
-                        f" --out \"{outstats}\" " \
-                        f" --var \"{var}\" " \
-                        f" --out_headers --out_fulltime "\
-                        f" --latname \"{latname}\" --lonname \"{lonname}\" " \
-                        f" --out_file \"{stat_file}\" "
-                    
-    statBlob_result = subprocess.run(statBlob_command, shell=True, capture_output=True, text=True)
+def lon_convert2(lon):
+    return np.where(lon < 0, 360 + lon, lon)
 
-    if not quiet:
-        return statBlob_result
+def merge_and_split_blob_dfs(df_stitch, df_nostitch, 
+              timename='time',
+              rfn="", textfn="", csvfn="", 
+              df_merged_name="df_merged", 
+              byvec=["datehour", "area", "var"]):
+    df_comm = df_stitch.merge(df_nostitch, on=byvec)
+    df_tot = df_stitch.merge(df_nostitch, on=byvec, how='outer')
+    df_istot = df_tot[df_tot['bnum_y'].isna()]
+    df_isnot = df_tot[df_tot['bnum_x'].isna()]
+    
+    df_comm["bnum2"] = df_comm["bnum_x"]
+    df_tot["bnum2"] = df_tot["bnum_x"]
+    df_istot["bnum2"] = df_istot["bnum_x"]
+    df_isnot["bnum2"] = df_isnot["bnum_y"]
 
-def read_statBlobs(stat_file):
-    #### Open to get the headers out ###
-    df = pd.read_csv(stat_file)
-    headers = df.columns.tolist()
-    #### Now read file with the full headers ###
-    df = pd.read_csv(stat_file, skiprows=1, sep='\s+', names=['track_id','object_id']+headers)
-
-    def convert_datetime_with_time_offset(row):
-        date_part = row.split('-')[0:3]
-        offset_seconds = int(row.split('-')[3])
-        # Combine date and time as datetime
-        date = '-'.join(date_part)
-        time = pd.to_datetime(date)
-        # Adjust for the UTC offset
-        adjusted_time = time + pd.Timedelta(seconds=offset_seconds)
+    names=list(df_stitch)
+    for varname in byvec+['bnum','bnum_id']:
+        names = [value_str for value_str in names if value_str != varname]
+    
+    for t in df_istot[timename].unique():
+        df_check = df_istot[df_istot[timename] == t]
+        df_otherblobs = df_isnot[df_isnot[timename] == t]
         
-        return adjusted_time#.strftime('%Y-%m-%d %H:%M:%S')
+        if not df_otherblobs.empty:
+            for _, row in df_check.iterrows():
+                clatmin, clatmax = row["minlat_x"], row["maxlat_x"]
+                clonmin, clonmax = row["minlon_x"], row["maxlon_x"]
+                axis180 = (clonmin < 0 or clonmax < 0)
+                
+                if clonmin > clonmax:
+                    per_bound = True
+                    clonmin = lon_convert(clonmin) if not axis180 else lon_convert2(clonmin)
+                    clonmax = lon_convert(clonmax) if not axis180 else lon_convert2(clonmax)
+                else:
+                    per_bound = False
+                
+                for _, blob in df_otherblobs.iterrows():
+                    blatmin, blatmax = blob["minlat_y"], blob["maxlat_y"]
+                    blonmin, blonmax = blob["minlon_y"], blob["maxlon_y"]
+                    
+                    if per_bound:
+                        blonmin = lon_convert(blonmin) if not axis180 else lon_convert2(blonmin)
+                        blonmax = lon_convert(blonmax) if not axis180 else lon_convert2(blonmax)
+                    
+                    if (blatmin >= clatmin and blatmax <= clatmax and
+                        blonmin >= clonmin and blonmax <= clonmax):
+                        for name in names:
+                            blob[name+"_x"] = blob[name+"_y"]
+                        blob["bnum_x"] = row["bnum_x"]
+                        df_comm = pd.concat([df_comm, blob.to_frame().T], ignore_index=True)
+
+    df_comm['bnum2']=df_comm['bnum_x']
+    df_comm = df_comm.drop(columns=[col for col in df_comm.columns if col.endswith("_y")])# and col != "bnum_y"])
+    df_comm.columns = df_comm.columns.str.replace(r"_x$|_y$", "", regex=True)
+    df_final = df_comm[[*df_stitch.columns, "bnum2"]]
+    df_final = df_final.sort_values(by=['bnum',timename])
+
+    df_final = df_final.astype({'bnum':'int'})
+    df_final = df_final.drop(columns=['bnum2'])
+
+    df_final["merge_type"] = "None"
+    df_final["track_id"] = 0
+
+    for b in df_final.bnum.unique():
+        df_temp=df_final[df_final.bnum==b]
+        prev_len_temp=1
+        for dt in df_temp[timename].unique():
+            len_temp=len(df_temp[df_temp[timename]==dt])
+            if len_temp>prev_len_temp:
+                df_final.loc[((df_final.bnum==b) & (df_final[timename]==dt)),'merge_type']='split'
+            if len_temp<prev_len_temp:
+                df_final.loc[((df_final.bnum==b) & (df_final[timename]==dt)),'merge_type']='merged'    
+            prev_len_temp=len_temp*1
 
     def insert_after(lst, target, value_to_insert):
         try:
@@ -309,10 +323,20 @@ def read_statBlobs(stat_file):
             print(f"Value {target} not found in the list.")
         return lst
 
-    new_col_order=insert_after(df.columns.tolist(),'time','datetime')
-    df['datetime'] = df['time'].apply(convert_datetime_with_time_offset)
+    new_col_order=insert_after(df_final.columns.tolist(),'bnum_id','track_id')
+    new_col_order=new_col_order[0:-1]
+    df_final=df_final[new_col_order]
+        
+    if rfn:
+        df_final.to_pickle(rfn)
+        print(f"Wrote {rfn} to file")
+    if textfn:
+        df_final.to_csv(textfn, sep='\t', index=False, quoting=3)
+        print(f"Wrote {textfn} to file")
+    if csvfn:
+        df_final.to_csv(csvfn, index=False)
+        print(f"Wrote {csvfn} to file")
     
-    df = df[new_col_order]
+    return df_final
 
-    return df
 
