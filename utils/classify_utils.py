@@ -2,7 +2,11 @@ import time
 import numpy as np
 import pandas as pd 
 
-def TEtxt2df(stitchNode_output_dir):    
+def TEtxt2df(stitchNode_output_dir):
+    """
+    Input - directory for stitchNode output
+    Ouput - pandas dataframe
+    """
     df = pd.read_csv(stitchNode_output_dir,skiprows=1,header=None)
 
     df.columns = ["TID","year","month","day","hour","nodex","nodey","LON","LAT","MSLP","WS","MSLPCC20",\
@@ -20,6 +24,10 @@ def TEtxt2df(stitchNode_output_dir):
     return df_track
 
 def cyclone_classifier(dfin):
+    """
+    Input - pandas dataframe from TEtxt2df()
+    Ouput - pandas dataframe with classified cyclones
+    """
     print("SyCLoPS main classification program starts ...") ;startt=time.time()
     dfin['mslcc_ratio']=dfin.MSLPCC20/dfin.MSLPCC55
     ## Generate arrays of placeholder labels
