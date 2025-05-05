@@ -1,7 +1,6 @@
 import os
 import subprocess
 
-os.environ['TEMPESTEXTREMESDIR']='/home/565/cj0591/tempestextremes/bin'
 def run_detectNodes(input_filelist, detect_filelist, mpi_np=4,
                     detect_var="msl",
                     merge_dist=6.0,
@@ -48,6 +47,7 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=4,
         file.write(stderr)
     if not quiet:
          return stdout, stderr
+
 
 def run_stitchNodes(input_filelist, stitch_file, mpi_np=1,
                     output_filefmt="csv",
