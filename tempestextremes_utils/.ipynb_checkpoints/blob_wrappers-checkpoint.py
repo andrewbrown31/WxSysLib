@@ -20,25 +20,91 @@ def create_Blob_dirstruct(runpath,casename):
     create_directory(runpath+casename+'/statBlobs')
 
 def run_detectBlobs(input_filelist,detect_filelist,quiet=False,clean=False,mpi_np=1,
-                    threshold_var="z",threshold_op=">=",threshold_val=1000.0,
-                    threshold_dist=0.,geofilterarea_km2=0.0,
+                    threshold_var="z",threshold_op=">=",threshold_val=0.0,threshold_dist=0.,
+                    #threshold="z,>=,0.0,0.0",
+                    geofilterarea_op=">=",geofilterarea_km2=0.0,#add_outvar='z,z',
                     lonname="longitude",latname="latitude"):
+    
+    ''' 
+    run_detectBlobs
+    A python wrapper for the DetectBlobs algorithm in TempestExtremes
+     
+    Created by : Chenhui Jin and Michael A. Barnes (ARC CoE 21st Century Weather, Monash University)
+    
+    Parameters
+    ----------
+    
+    input_filelist : str 
+        Path to the filelist containing the input files for blob detection
+    input_filelist : str 
+        Path to the filelist containing the output filenames for blob detection
+    
+    Options
+    -------
+    quiet : bool (default: False)
+        If false, returns the output and error log files.
+    clean : bool (default: False)
+        If true, removes all netcdf files and log.text files in the directory of the specified detect_filelist
+    mpi_np : int (default: 1)
+        Numper of parallel processes given to the mpirun command
+    threshold_var : str (default: "z")
+        Name of the variable name in the input netcdf files in input_filelist required for blob detection
+        Handed to the TempestExtremes/DetectBlob command --thresholdcmd (see https://climate.ucdavis.edu/tempestextremes.php)
+    threshold_op : str (default: ">=")
+        Threshold operator for the blob detection
+        Handed to the TempestExtremes/DetectBlob command --thresholdcmd (see https://climate.ucdavis.edu/tempestextremes.php)
+    threshold_val : float (default: 0.0)
+        Threshold value for the blob detection
+        Handed to the TempestExtremes/DetectBlob command --thresholdcmd (see https://climate.ucdavis.edu/tempestextremes.php)
+    threshold_dist : float (default: 0.0)
+        Buffer distance surrounding the detected blob
+        Handed to the TempestExtremes/DetectBlob command --thresholdcmd (see https://climate.ucdavis.edu/tempestextremes.php)
+    geofilterarea_op : str (default: ">=")
+        Threshold operator to filter out contiguous regions (blobs) that do not satisfy a specified area size.
+        Handed to the TempestExtremes/DetectBlob command --geofiltercmd (see https://climate.ucdavis.edu/tempestextremes.php)
+    geofilterarea_km2 : float (default: 0.0)
+        Value (in km2) to filter out contiguous regions (blobs) that do not satisfy a specified area size.
+        Handed to the TempestExtremes/DetectBlob command --geofiltercmd (see https://climate.ucdavis.edu/tempestextremes.php)
+    latname : str (default: "latitude")
+        Name of the latitude variable name in the input netcdf files in input_filelist
+    lonname : str (default: "longitude")
+        Name of the longitude variable name in the input netcdf files in input_filelist
+
+    Returns
+    -------
+    stdout : str
+        The output recieved from the mpirun process.
+        Only returned if quiet=False
+    stderr : int
+        The error output recieved from the mpirun process.
+        Only returned if quiet=False
+    
+    '''
+    logpath,_=os.path.split(detect_filelist)
 
     detectBlob_command = ["mpirun", "-np", f"{int(mpi_np)}",
                             f"{os.environ['TEMPESTEXTREMESDIR']}/DetectBlobs", 
                             "--in_data_list",f"{input_filelist}",
                             "--thresholdcmd",f"{threshold_var},{threshold_op},{threshold_val},{threshold_dist}",
-                            "--geofiltercmd", f"area,>=,{geofilterarea_km2}km2",
+                            #"--thresholdcmd",f"{threshold}",
+                            "--geofiltercmd", f"area,{geofilterarea_op},{geofilterarea_km2}km2",
+                            #"--outputcmd", f"{add_outvar}",
                             "--timefilter", f"6hr",
                             "--latname", f"{latname}", 
                             "--lonname", f"{lonname}",
+                            "--logdir", f"{logpath}",
                             "--out_list", f"{detect_filelist}"
                             ]
+
+    print(''.join(detectBlob_command))
 
     if clean:
         path,_=os.path.split(detect_filelist)
         delete_all_files(path,extension='.nc')
         delete_all_files(path,extension='log.txt')
+
+    if not quiet:
+        print(" ".join(map(str, detectBlob_command)))
         
     # Run the command asynchronously
     process = subprocess.Popen(detectBlob_command, 
@@ -64,6 +130,7 @@ def run_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,clean=False,mpi_
                     minlat=None,maxlat=None,
                     min_overlap_prev=25.,max_overlap_prev=100.,
                     min_overlap_next=25.,max_overlap_next=100.,
+                    restrict_region=None,
                     lonname="longitude",latname="latitude"):
 
     stitchBlob_command =["mpirun", "-np", f"{int(mpi_np)}",
@@ -75,17 +142,22 @@ def run_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,clean=False,mpi_
                             "--min_overlap_next", f"{min_overlap_next}","--max_overlap_next", f"{max_overlap_next}",
                             "--latname", f"{latname}", 
                             "--lonname", f"{lonname}",
-                            "--out_list", f"{stitch_filelist}"
+                            "--out_list", f"{stitch_filelist}",
                             ]
     if minlat:
         stitchBlob_command=stitchBlob_command+["--minlat", f"{minlat}"]
     if maxlat:
         stitchBlob_command=stitchBlob_command+["--maxlat", f"{maxlat}"]
+    if restrict_region:
+        stitchBlob_command=stitchBlob_command+["--restrict_region", f"{restrict_region}"]
 
     if clean:
         path,_=os.path.split(stitch_filelist)
         delete_all_files(path,extension='.nc')
         delete_all_files(path,extension='log.txt')
+
+    if not quiet:
+        print(" ".join(map(str, stitchBlob_command)))
 
     # Run the command asynchronously
     process = subprocess.Popen(stitchBlob_command, 
@@ -104,8 +176,7 @@ def run_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,clean=False,mpi_
         file.write(stderr)
     
     if not quiet:
-        print(stdout)
-        print(stderr)
+        return stdout, stderr
 
 def run_statBlobs(stitch_filelist,stat_file,quiet=False,clean=False,
                   var='object_id',lonname="longitude",latname="latitude",

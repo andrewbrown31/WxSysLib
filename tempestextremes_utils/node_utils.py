@@ -1,4 +1,4 @@
-i#!/usr/bin/env python
+#!/usr/bin/env python
 import os
 import shutil
 import subprocess
@@ -10,47 +10,74 @@ from tqdm import tqdm
 from utils.file_utils import write_to_filelist,create_directory,read_filelist
 
 
-def run_detectNodes(input_filelist, detect_filelist, mpi_np=4,
-                    detect_var="msl",merge_dist=6.0,
-                    detect_dist=5.5,
-                    detect_delta=10,
-                    detect_minmaxdist=0,
+def create_Node_dirstruct(runpath,casename):
+    #### Create the case directory ####
+    casedir=os.path.join(runpath,casename)
+    create_directory(casedir)
+    #### Create the detectBlobs directory ####
+    inputdir=os.path.join(runpath,casename,'input')
+    create_directory(inputdir)
+    #### Create the detectNodes directory ####
+    detectNodesdir=os.path.join(runpath,casename,'detectNodes')
+    create_directory(detectNodesdir)
+    #### Create the detectNodes directory ####
+    stitchNodesdir=os.path.join(runpath,casename,'stitchNodes')
+    create_directory(stitchNodesdir)
+    #### Create the detectNodes directory ####
+    logsdir=os.path.join(runpath,casename,'logs')
+    create_directory(logsdir)
+    
+    return casedir,inputdir,detectNodesdir,stitchNodesdir,logsdir
+
+def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
+                    detect_var="msl",
+                    merge_dist=6.0,
+                    bounds=None,
+                    closedcontour_commands="msl,200.0,5.5,0;_DIFF(z(300millibars),z(500millibars)),-58.8,6.5,1.0",
+                    output_commands="msl,min,0;_VECMAG(u10,v10),max,2.0;zs,min,0",
                     timeinterval="6hr",
                     lonname="longitude",latname="latitude",
-                    quiet=False):
-    """
-    input_filelist --- text file contain a list of required input netcdf files
-    detect_filelist --- text file contain a list of names of output files
-    mpi_np --- mpi parallel running
-    detect_var --- variable used to detect nodes
-    merge_dist --- merge distance, if detected nodes wihtin this distance of each other merge into a single node
-    detect_dist --- the distance from the detect node
-    detect_delta --- the increase/decrease of detect variable from the detected node
-    timeinterval --- time interval (1hr|6hr|12hr)
-    lonname --- longitude name
-    latname --- latitude name
-    """
-
-    # These parameters need in cyclone classification
-    # For details see Han and Ullrich (2025) https://doi.org/10.1029/2024JD041287
-    # Change variables names according to input reanalysis data
-    output_commands = "msl,min,0;"\
-                      "_VECMAG(u10,v10),max,2.0;"\
-                      "msl,posclosedcontour,2.0,0;"\
-                      "msl,posclosedcontour,5.5,0;"\
-                      "_DIFF(_VECMAG(u(200millibars),v(200millibars)),_VECMAG(u(850millibars),v(850millibars))),avg,10.0;"\
-                      "_DIFF(z(300millibars),z(500millibars)),negclosedcontour,6.5,1.0;"\
-                      "_DIFF(z(500millibars),z(700millibars)),negclosedcontour,3.5,1.0;"\
-                      "_DIFF(z(700millibars),z(925millibars)),negclosedcontour,3.5,1.0;"\
-                      "z(500millibars),posclosedcontour,3.5,1.0;"\
-                      "vo(500millibars),avg,2.5;"\
-                      "r(100millibars),max,2.5;"\
-                      "r(850millibars),avg,2.5;"\
-                      "t(850millibars),max,0.0;"\
-                      "z(850millibars),min,0;"\
-                      "zs,min,0;"\
-                      "u(850millibars),posminusnegwtarea,5.5;"\
-                      "_VECMAG(u(200millibars),v(200millibars)),maxpoleward,1.0"
+                    logdir="./log/",
+                    regional=False,
+                    quiet=False,
+                    out_command_only=False):
+    
+    ''' Detect and track minimum based on TempestExtremes
+    TC detection is based on warm-core criterion from Zarzycki and Ullrich (2017)
+    https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2016GL071606
+    
+    Parameters
+    ----------
+   
+    input_filelist : dtype str
+        String with a path to the textfile containing the input data required.
+    detect_filelist : dtype str
+        String with a path to the textfile containing the names of the detectNode output.
+    mpi_np : dtype int
+        Number of cores used in the calculation, given to mpi command.
+    detect_var : dtype str
+        String with the variable to detect (must match ib the input netcdf file).
+    bounds : list (N=4), default=None.
+        a list containing the bounds of a bounding box to do detection in the form [minlon,maxlon,minlat,maxlat]
+    closedcontour_commands : dtype str
+        String with the closed contour commands. Should be of the form <var,op,threshold,dist> with commands separated by a ";"
+    output_commands : dtype str
+        String with the output commands. Should be of the form <var,op,dist> with commands separated by a ";"
+    timeinterval : dtype str
+        String with the time interval (e.g. "6hr")
+    lonname : dtype str
+        String with the longitude variable name, as in the input netcdfs
+    latname : dtype str
+        String with the latitude variable name, as in the input netcdfs
+    logdir : dtype str
+        String with the path for logfile output.
+    regional : bool
+        *Optional*, default ``False``. If ``True``, tells TE that it is expecting a regional grid without periodic boundaries
+    quiet : bool
+        *Optional*, default ``False``. If ``True``, progress information is suppressed.
+    out_command_only : bool
+        *Optional*, default ``False``. If ``True``, will not run the TE command but instead with output the command for terminal use.
+    '''
 
     # DetectNode command
     detectNode_command = ["mpirun", "-np", f"{int(mpi_np)}",
@@ -58,41 +85,62 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=4,
                             "--in_data_list",f"{input_filelist}",
                             "--out_file_list", f"{detect_filelist}",
                             "--searchbymin",f"{detect_var}",
-                            "--closedcontourcmd",f"{detect_var},{detect_delta},{detect_dist},{detect_minmaxdist}",
+                            "--closedcontourcmd",f"{closedcontour_commands}",
                             "--mergedist",f"{merge_dist}",
                             "--outputcmd",f"{output_commands}",
                             "--timefilter",f"{timeinterval}",
                             "--latname",f"{latname}",
-                            "--lonname",f"{lonname}"
+                            "--lonname",f"{lonname}",
+                            "--logdir",f"{logdir}",
                             ]
-    
-    detectNode_process = subprocess.Popen(detectNode_command,
-                                          stdout=subprocess.PIPE, 
-                                          stderr=subprocess.PIPE, text=True)
-    
-    # Wait for the process to complete and capture output
-    stdout, stderr = detectNode_process.communicate()
+    if regional:
+        detectNode_command=detectNode_command+["--regional"]
+    if bounds is not None:
+        detectNode_command=detectNode_command+[f"--minlon {bounds[0]} --maxlon {bounds[1]} --minlat {bounds[2]} --maxlat {bounds[3]}"]
 
-    path,_=os.path.split(input_filelist)
-    outfile=path+'/detectNodes_outlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stdout)
-    outfile=path+'/detectNodes_errlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stderr)
-    if not quiet:
-         return stdout, stderr
+    printed_command=detectNode_command.copy()
+    indx=np.where(np.array(printed_command)=='--searchbymin')[0][0]+1
+    printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
+    indx=np.where(np.array(printed_command)=='--closedcontourcmd')[0][0]+1
+    printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
+    indx=np.where(np.array(printed_command)=='--outputcmd')[0][0]+1
+    printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
+    indx=np.where(np.array(printed_command)=='--timefilter')[0][0]+1
+    printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
+
+    
+    print(*printed_command)
+
+    #print(out_command_only)
+    if not out_command_only:
+        detectNode_process = subprocess.Popen(detectNode_command,
+                                              stdout=subprocess.PIPE, 
+                                              stderr=subprocess.PIPE, text=True)
+
+        # Wait for the process to complete and capture output
+        stdout, stderr = detectNode_process.communicate()
+    
+        #path,_=os.path.split(input_filelist)
+        outfile=logdir+'/detectNodes_outlog.txt'
+        with open(outfile, 'w') as file:
+            file.write(stdout)
+        outfile=logdir+'/detectNodes_errlog.txt'
+        with open(outfile, 'w') as file:
+            file.write(stderr)
+        if not quiet:
+             return stdout, stderr
 
 def run_stitchNodes(input_filelist, stitch_file, mpi_np=1,
-                    output_filefmt="txt",
-                    range_dist=6.0,
-                    minim_time="18h",
-                    maxgap_time="12h",
-                    threshold_var="MSLPCC55",
-                    threshold_op=">=",
-                    threshold_val=100.0,
-                    threshold_time=5,
-                    quiet=False):
+                    output_filefmt="csv",
+                    in_fmt_commands="lon,lat,msl",
+                    range_dist=8.0,
+                    minim_time="54h",
+                    maxgap_time="24h",
+                    min_endpoint_dist=12.0,
+                    threshold_condition="wind,>=,10.0,10;lat,<=,50.0,10;lat,>=,-50.0,10;zs,<,150,10",
+                    quiet=False,
+                    out_command_only=False):
+
     """
     input_filelist --- text file contain a list of DetectNode output files
     stitch_file --- a single text file with stitched nodes
@@ -108,35 +156,36 @@ def run_stitchNodes(input_filelist, stitch_file, mpi_np=1,
     threshold_time --- the numbe of timesteps threshold must be satisfied
     """
 
-    # These command corresponding to the output_commands in the run_detectNodes
-    in_fmt_commands = "lon,lat,MSLP,WS,MSLPCC20,MSLPCC55,DEEPSHEAR,UPPTKCC,MIDTKCC,LOWTKCC,Z500CC,VO500AVG,RH100MAX,RH850AVG,T850,Z850,ZS,U850DIFF,WS200PMX"
-
     # StitchNode command
     stitchNode_command = ["mpirun", "-np", f"{int(mpi_np)}",
                              f"{os.environ['TEMPESTEXTREMESDIR']}/StitchNodes",
                              "--in_list",f"{input_filelist}",
-                             "--in_fmt",f"{in_fmt_commands}",
+                             "--in_fmt",f"\"{in_fmt_commands}\"",
                              "--range",f"{range_dist}",
                              "--mintime",f"{minim_time}",
                              "--maxgap",f"{maxgap_time}",
-                             "--threshold",f"{threshold_var},{threshold_op},{threshold_val},{threshold_time}",
+                             "--threshold",f"\"{threshold_condition}\"",
+                             "--min_endpoint_dist",f"{min_endpoint_dist}",
                              "--out_file_format",f"{output_filefmt}",
                              "--out", f"{stitch_file}"
                              ]
     
-    stitchNode_process = subprocess.Popen(stitchNode_command,
-                                          stdout=subprocess.PIPE, 
-                                          stderr=subprocess.PIPE, text=True)
+    print(*stitchNode_command)
     
-    # Wait for the process to complete and capture output
-    stdout, stderr = stitchNode_process.communicate()
+    if not out_command_only:
+        stitchNode_process = subprocess.Popen(stitchNode_command,
+                                              stdout=subprocess.PIPE, 
+                                              stderr=subprocess.PIPE, text=True)
 
-    path,_=os.path.split(input_filelist)
-    outfile=path+'/stitchNodes_outlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stdout)
-    outfile=path+'/stitchNodes_errlog.txt'
-    with open(outfile, 'w') as file:
-        file.write(stderr)
-    if not quiet:
-         return stdout, stderr
+        # Wait for the process to complete and capture output
+        stdout, stderr = stitchNode_process.communicate()
+
+        path,_=os.path.split(input_filelist)
+        outfile=path+'/stitchNodes_outlog.txt'
+        with open(outfile, 'w') as file:
+            file.write(stdout)
+        outfile=path+'/stitchNodes_errlog.txt'
+        with open(outfile, 'w') as file:
+            file.write(stderr)
+        if not quiet:
+             return stdout, stderr

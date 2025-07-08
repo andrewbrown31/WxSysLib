@@ -7,6 +7,7 @@ import scipy.interpolate as interp
 from tqdm import tqdm
 
 from gridding.utils import haversine
+from utils.file_utils import write_xarray_to_nc
 
 def reg_to_polar_nc(infile,outfile,hemis='sh',ratio_new_grid=0.5,outer_data_val=0,
                     var='z',lonname='longitude',latname='latitude'):
@@ -28,7 +29,7 @@ def reg_to_polar_nc(infile,outfile,hemis='sh',ratio_new_grid=0.5,outer_data_val=
     #return grid_polar
 
     # Create xarray DataArray and save
-    xr.DataArray(
+    ds=xr.DataArray(
         polar_arr,
         coords={"time": grid_polar['time'], 
                 "y": np.array(list(range(grid_polar['y'].shape[1]))),
@@ -38,6 +39,7 @@ def reg_to_polar_nc(infile,outfile,hemis='sh',ratio_new_grid=0.5,outer_data_val=
         dims=["time", "y", "x"],
         name=var
     ).to_netcdf(outfile)
+    #write_xarray_netcdf(ds,outfile)
 
 def make_polar_grid(hemis, grid_original, transform=ccrs.PlateCarree(),ratio_new_grid=1):
     if hemis == 'nh':

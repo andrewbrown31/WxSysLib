@@ -12,7 +12,7 @@ import os
 import time
 from tqdm import tqdm
 
-def blocking_index_masato(z500,lat_p=60,lat_e=30,lat_band=15):
+def masato_blocking_index(z500,lat_p=60,lat_e=30,lat_band=15):
     
     ''' Masato Blocking Index by Masato et al. (2012): https://doi.org/10.1002/qj.990
     Created by Tess J. Parker (CSIRO Environment) and Michael A. Barnes (ARC CoE 21st Century Weather, Monash University)
@@ -40,7 +40,7 @@ def blocking_index_masato(z500,lat_p=60,lat_e=30,lat_band=15):
         in the geopotential gradient and therefore potential blocking.
     '''
     b_index=xr.zeros_like(z500.sel(latitude=slice(lat_p+lat_band,-(lat_p+lat_band))))
-    b_index=b_index.rename({'b_index'})
+    b_index=b_index.rename('b_index')
     
     for it, itime in enumerate(tqdm(b_index.time.values, desc='Masato blocking index calculation: ')):
         for i,ilat in enumerate(b_index.latitude.values):

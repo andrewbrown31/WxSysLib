@@ -8,6 +8,7 @@ import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
 from utils.file_utils import write_to_filelist,create_directory,read_filelist,delete_all_files,delete_file
+from tempestextremes_utils.blob_wrappers import run_stitchBlobs
 from gridding.utils import haversine
 
 def separate_blobs_by_closest_cents(df):
@@ -104,6 +105,9 @@ def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_t
     non_bg_xarray1 = flat_xarray1[mask]
     non_bg_xarray2 = flat_xarray2[mask]
 
+    #print(np.min(non_bg_xarray1))
+    #print(np.min(non_bg_xarray2))
+
     # Create a hashmap (dictionary) for the unique labels in xarray2 for fast lookup
     label2_positions = {}
     for idx, label2 in enumerate(non_bg_xarray2):
@@ -128,6 +132,10 @@ def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_t
         if unique_labels_2.size > 0:
             return label1, unique_labels_2.tolist()
         return None
+        
+        # Delete all local variables
+        for var in list(locals().keys()):
+            del locals()[var]
 
     # Retrieve unique labels from xarray1 (excluding background)
     unique_labels_1 = np.unique(non_bg_xarray1)
@@ -138,6 +146,7 @@ def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_t
 
     # Filter out None results and update the mapping dictionary
     for result in results:
+        #print(result)
         if result:
             mapping[result[0]] = result[1]
 
@@ -153,10 +162,10 @@ def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_t
             mapping[label1] = [new_label_start]
             new_label_start += 1
 
-    max_value = max(max(v) for v in mapping.values())+1
-    for new_ind,k in enumerate(range(int(xarray1.where(xarray1>0).max().values)+1,
-                   int(xarray3.where(xarray3>0).max().values))):
-        mapping[k]=[max_value+new_ind]
+    #max_value = max(max(v) for v in mapping.values())+1
+    #for new_ind,k in enumerate(range(int(xarray1.where(xarray1>0).max().values)+1,
+    #               int(xarray3.where(xarray3>0).max().values)+1)): ### MB added 1 here. 
+    #    mapping[k]=[max_value+new_ind]
 
     def apply_mapping_to_xarray(xarray3, mapping):
         """
@@ -180,6 +189,7 @@ def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_t
     
         # Vectorized approach: Apply the new labels using np.isin()
         for old_label, new_label in flat_mapping.items():#tqdm(flat_mapping.items()):
+            #print(old_label, new_label)
             mask = data == old_label  # Create a mask where the value is old_label
             data[mask] = new_label  # Set the new value for all positions that match
     
@@ -189,19 +199,32 @@ def connect_stitchBlobs(stitchfile_t0_temp, stitchfile_t0_final, stitchfile_t1_t
         
         return new_xarray
 
-    #print('Creating new index stitchBlobs...')
+        # Delete all local variables
+        for var in list(locals().keys()):
+            del locals()[var]    
+
+        del flat_mapping
 
     apply_mapping_to_xarray(xarray3, mapping).to_netcdf(stitchfile_t1_final)
 
-def run_and_connect_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,
+    # Delete all local variables
+    del mapping,label2_positions
+
+def run_and_connect_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,clean=False,
                                 minsize=1,
                                 min_overlap_prev=25.,max_overlap_prev=100.,
                                 min_overlap_next=25.,max_overlap_next=100.,
                                 lonname="longitude",latname="latitude"):
+
+    if clean:
+        path,_=os.path.split(stitch_filelist)
+        delete_all_files(path,extension='.nc')
+        delete_all_files(path,extension='log.txt')
+        delete_all_files(path,extension='_temp.txt')
+
     stitch_filenames=read_filelist(stitch_filelist)
     detect_filenames=read_filelist(detect_filelist)
     for sf,s in tqdm(enumerate(stitch_filenames[0:-1]),total=len(stitch_filenames[0:-1])):
-        #print(s)
         detect_filenames_temp=detect_filenames[sf:sf+2]
         name, extension = os.path.splitext(detect_filelist) 
         detect_filelist_temp=name+'_temp'+extension
@@ -211,9 +234,8 @@ def run_and_connect_stitchBlobs(detect_filelist,stitch_filelist,quiet=False,
         name, extension = os.path.splitext(stitch_filelist) 
         stitch_filelist_temp=name+'_temp'+extension
         write_to_filelist(stitch_filenames_temp,stitch_filelist_temp)
-    
-        #print('Running stitchBlobs...')
-        result=run_stitchBlobs(detect_filelist_temp,stitch_filelist_temp,quiet=False,
+        
+        result=run_stitchBlobs(detect_filelist_temp,stitch_filelist_temp,quiet=quiet,clean=False,mpi_np=1,
                            min_overlap_prev=min_overlap_prev,max_overlap_prev=max_overlap_prev,
                            min_overlap_next=min_overlap_next,max_overlap_next=max_overlap_next,
                            minsize=minsize,mintime=1,
