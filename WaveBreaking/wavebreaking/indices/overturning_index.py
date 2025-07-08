@@ -221,9 +221,9 @@ def calculate_overturnings(
             #### Here I add in a separation between SH and NH directionality
             if lat_west > 0: 
                 if abs(lat_west) <= abs(lat_east):
-                    return "cyclonic"
-                else:
                     return "anticyclonic"
+                else:
+                    return "cyclonic"
             if lat_west < 0: 
                 if abs(lat_west) <= abs(lat_east):
                     return "cyclonic"
