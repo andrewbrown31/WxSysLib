@@ -30,6 +30,7 @@ def create_Node_dirstruct(runpath,casename):
     return casedir,inputdir,detectNodesdir,stitchNodesdir,logsdir
 
 def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
+                    searchby="min",
                     detect_var="msl",
                     merge_dist=6.0,
                     bounds=None,
@@ -84,7 +85,7 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
                             f"{os.environ['TEMPESTEXTREMESDIR']}/DetectNodes",
                             "--in_data_list",f"{input_filelist}",
                             "--out_file_list", f"{detect_filelist}",
-                            "--searchbymin",f"{detect_var}",
+                            f"--searchby{searchby}",f"{detect_var}",
                             "--closedcontourcmd",f"{closedcontour_commands}",
                             "--mergedist",f"{merge_dist}",
                             "--outputcmd",f"{output_commands}",
@@ -98,8 +99,9 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
     if bounds is not None:
         detectNode_command=detectNode_command+[f"--minlon {bounds[0]} --maxlon {bounds[1]} --minlat {bounds[2]} --maxlat {bounds[3]}"]
 
+    ### Here I prepare the command to printed out ready for the terminal as I need to add in some "" for some variables
     printed_command=detectNode_command.copy()
-    indx=np.where(np.array(printed_command)=='--searchbymin')[0][0]+1
+    indx=np.where(np.array(printed_command)==f"--searchby{searchby}")[0][0]+1
     printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
     indx=np.where(np.array(printed_command)=='--closedcontourcmd')[0][0]+1
     printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
@@ -107,12 +109,10 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
     printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
     indx=np.where(np.array(printed_command)=='--timefilter')[0][0]+1
     printed_command[indx]=[f'"{s}"' for s in [printed_command[indx]]][0]
-
     
     print(*printed_command)
-
-    #print(out_command_only)
     if not out_command_only:
+        print('Running command ...')
         detectNode_process = subprocess.Popen(detectNode_command,
                                               stdout=subprocess.PIPE, 
                                               stderr=subprocess.PIPE, text=True)
