@@ -1,4 +1,1 @@
 sphinx
-nbsphinx
-sphinx-gallery
-ipywidgets
