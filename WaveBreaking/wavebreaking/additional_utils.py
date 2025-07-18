@@ -9,12 +9,15 @@ def process_to_geojson(df,colnames=['com']):
     #df.drop(colnames, axis=1).to_file(outfile, driver='GeoJSON')  
     return df.drop(colnames, axis=1)
 
-def process_lists_to_geojson(df,colnames=['com']):
+def process_lists_to_geojson(df, colnames=['com']):
     for colname in colnames:
-        colvar=[]
-        df[colname+'_str'] = df[colname].apply(lambda lst: ','.join(map(str, lst)))
+        df[colname + '_str'] = df[colname].apply(
+            lambda lst: ','.join(map(str, lst)) 
+                        if isinstance(lst, (list, tuple)) and lst is not None 
+                        else None
+        )
+    return df.drop(columns=colnames, errors='ignore')
 
-    return df.drop(colnames, errors='ignore', axis=1)
 
 def convert_to_list(value):
     if isinstance(value, np.ndarray):
@@ -31,7 +34,7 @@ def get_str_list_from_df(df, colnames=['com']):
         def parse_comma_list(val):
             if val == '' or pd.isna(val):
                 return []
-            return [int(item.strip()) for item in val.split(',') if item.strip()]
+            return [float(item.strip()) for item in val.split(',') if item.strip()]
 
         df[colname] = df[str_col].apply(parse_comma_list)
 
