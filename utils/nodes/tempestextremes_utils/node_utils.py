@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
-from utils.file_utils import write_to_filelist,create_directory,read_filelist
+from utils.general.file_utils import write_to_filelist,create_directory,read_filelist
 
 
 def create_Node_dirstruct(runpath,casename):
@@ -160,11 +160,11 @@ def run_stitchNodes(input_filelist, stitch_file, mpi_np=1,
     stitchNode_command = ["mpirun", "-np", f"{int(mpi_np)}",
                              f"{os.environ['TEMPESTEXTREMESDIR']}/StitchNodes",
                              "--in_list",f"{input_filelist}",
-                             "--in_fmt",f"\"{in_fmt_commands}\"",
+                             "--in_fmt",f"{in_fmt_commands}",
                              "--range",f"{range_dist}",
                              "--mintime",f"{minim_time}",
                              "--maxgap",f"{maxgap_time}",
-                             "--threshold",f"\"{threshold_condition}\"",
+                             "--threshold",f"{threshold_condition}",
                              "--min_endpoint_dist",f"{min_endpoint_dist}",
                              "--out_file_format",f"{output_filefmt}",
                              "--out", f"{stitch_file}"
