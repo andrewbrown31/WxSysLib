@@ -11,7 +11,7 @@ Utility functions
 ------------------
 Utility functions are python functions within WxSysLib that can be reused in a number of different applications and recipes. Codes contirbutions, wherever possible, should be written as a series of utility functions. They can have dependencies on packages outside of utils (as described in "Installed packages") but they must be described and installed in the WxSysLib NCI toolbox. Utility functions are to be located in the utils directory. The utils directory is sorted into the various category directories. New contributions shoudl be divided into these categories. The util subdirectories include:
 
-- blobs - for all threshold identification and tracking functions (e.g. TempestExtremes blob utilities, TOBAC utilities). 
+- blobs - for all areal feature identification and tracking functions (e.g. TempestExtremes blob utilities, TOBAC utilities). 
 - nodes - for all point identification and tracking functions (e.g. TempestExtremes node utilities)
 - lines - for all line identification and tracking functions
 - diagnostics - all instantaneous dynamical diagnostic funcitons (e.g. Lagranto utilities)
