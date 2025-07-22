@@ -13,7 +13,10 @@ Utility functions are python fucntions within WxSysLib that can be reused in a n
 
 - blobs - for all threshold identification and tracking functions (e.g. TempestExtremes blob utilities, TOBAC utilities). 
 - nodes - for all point identification and tracking functions (e.g. TempestExtremes node utilities)
-- 
+- lines - for all line identification and tracking functions
+- diagnostics - all instantaneous dynamical diagnostic funcitons (e.g. Lagranto utilities)
+- general - all general utilities that can be used across all fucntions (e.g. datetime.datetime iterators, nci specific functions)
+- plotting - all generalised plotting fucntions that can be used for a range of applciations (e.g. synoptic chart plots, point density climatologies)
 
 Recipes
 -------
