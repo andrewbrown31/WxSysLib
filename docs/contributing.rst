@@ -20,7 +20,7 @@ Utility functions are python functions within WxSysLib that can be reused in a n
 
 Recipes
 -------
-Recipes are Juypter notebooks within the WxSysLib that describe the process for tracking and diagnosis of particular features. Where possible, recipes should be easy to read and rely on a series of utility functions. Recipies are located in the recipies directory and categorised by meteorological phenomenon (for example: tropical_cyclones, extratropical_cyclones, blocking). Recipes that use different techniques to track and dianose similar phenomena are encouraged! For example, although there is a recipe tracking tropical cyclones using TempestExtremes already in WxSysLib, we would encourage the addition of a recipe that uses another tool to track tropical cyclones. 
+Recipes are Juypter notebooks within the WxSysLib that describe the process for tracking and diagnosis of particular features. Where possible, recipes should be easy to read and rely on a series of utility functions. Recipies are located in the recipies directory and categorised by meteorological phenomenon (for example: tropical_cyclones, extratropical_cyclones, blocking). Recipes that use different techniques to track and diagnose similar phenomena are encouraged! For example, although there is a recipe tracking tropical cyclones using TempestExtremes already in WxSysLib, we would encourage the addition of a recipe that uses another tool to track tropical cyclones. 
 
 Documentation
 -------------
