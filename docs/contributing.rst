@@ -27,10 +27,11 @@ Documentation
 All submissions should include documentation descriptions. Documentation in WxSysLib is handled in three parts.
 
 
-### In-line utility function documentation
+1. In-line utility function documentation
 
-### In-line recipe documentation
 
-### readthedocs documentation 
+2. In-line recipe documentation
+
+3. readthedocs documentation 
 
 
