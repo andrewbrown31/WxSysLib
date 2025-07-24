@@ -7,6 +7,8 @@ import numpy as np
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor
 from tqdm import tqdm
+from utils.general.nci_utils import get_GADI_ERA5_filename
+from utils.general.date_utils import generate_datetimes_months
 from utils.general.file_utils import write_to_filelist,create_directory,read_filelist
 
 
@@ -23,6 +25,9 @@ def create_Node_dirstruct(runpath,casename):
     #### Create the detectNodes directory ####
     stitchNodesdir=os.path.join(runpath,casename,'stitchNodes')
     create_directory(stitchNodesdir)
+	#### Create the detectNodes directory ####
+    nodeFileComposedir=os.path.join(runpath,casename,'nodeFileCompose')
+    create_directory(nodeFileComposedir)
     #### Create the detectNodes directory ####
     logsdir=os.path.join(runpath,casename,'logs')
     create_directory(logsdir)
@@ -94,10 +99,13 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
                             "--lonname",f"{lonname}",
                             "--logdir",f"{logdir}",
                             ]
+
+                            	
     if regional:
         detectNode_command=detectNode_command+["--regional"]
     if bounds is not None:
-        detectNode_command=detectNode_command+[f"--minlon {bounds[0]} --maxlon {bounds[1]} --minlat {bounds[2]} --maxlat {bounds[3]}"]
+        detectNode_command=detectNode_command+["--minlon",f"{bounds[0]}","--maxlon",f"{bounds[1]}","--minlat",f"{bounds[2]}","--maxlat",f"{bounds[3]}"]
+
 
     ### Here I prepare the command to printed out ready for the terminal as I need to add in some "" for some variables
     printed_command=detectNode_command.copy()
@@ -189,3 +197,128 @@ def run_stitchNodes(input_filelist, stitch_file, mpi_np=1,
             file.write(stderr)
         if not quiet:
              return stdout, stderr
+
+def run_nodeCompose(stitch_file, compose_file, in_fmt, 
+                    level_type, grid_type='XY',
+                    variables=['u','v'],
+                    lonname="longitude",latname="latitude",
+                    dx=0.5, resx=11,
+                    quiet=False,
+                    out_command_only=False):
+    """
+    Parameters
+    ----------
+    stitch_file : dtype str
+        String with a path to the csv file of the stitch node output data.
+    compose_file : dtype str
+        String with a path to the netcdf file of the compose node output data.
+    level_type : dtype str
+        level type of era5 data ['pressure-levels', 'single-levels', 'potential-temperature']
+    grid_type : dtype str
+        grid type of the output data default='XY'
+    variables : list (N=n)
+        a list containing names of variables in the form of ['u', 'v']
+    lonname : dtype str
+        String with the longitude variable name, as in the input netcdfs
+    latname : dtype str
+        String with the latitude variable name, as in the input netcdfs
+    dx: dtype float
+        Horizontal grid spacing of the XY grid
+    resx: dtype int
+        Number of grid ceels in each coordiante on the XY grid
+    quiet : bool
+        *Optional*, default ``False``. If ``True``, progress information is suppressed.
+    out_command_only : bool
+        *Optional*, default ``False``. If ``True``, will not run the TE command but instead with output the command for terminal use.
+    
+    """
+
+    # level type
+    if level_type == 'pressure-levels':
+        ERA5_DIR = '/g/data/rt52/era5/pressure-levels/reanalysis'
+        level_type_short = 'pl'    
+    if level_type == 'potential-temperature':
+        ERA5_DIR = '/g/data/uc16/era5/potential-temperature/oper'
+        level_type_short = 'pt'
+    if level_type == 'single-levels':
+        ERA5_DIR = '/g/data/rt52/era5/single-levels/reanalysis'
+        level_type_short = 'sfc'
+    
+    # create a "time" column
+    df = pd.read_csv(stitch_file, skipinitialspace=True)
+    df['time'] = pd.to_datetime({
+        'year':  df.year,
+        'month': df.month,
+        'day':   df.day,
+        'hour':  df.hour
+    })
+    
+    # extract start and end date
+    sta_date = df.time.min()
+    end_date = df.time.max()
+    months_list = generate_datetimes_months(sta_date,end_date,interval=1)
+    
+    # input filelist
+    inputlist = os.path.dirname(compose_file) + os.sep + 'inputlist.txt'
+    with open(inputlist, 'w') as in_file:
+        for m in months_list:
+            files = []
+            for var in variables:
+                file = get_GADI_ERA5_filename(var,m,stream='hourly',level_type=level_type)
+                files.append(file)
+            in_file.write(";".join(files) + "\n")
+    
+    # --var
+    if level_type == 'single-levels':
+        varin_str = ",".join([f'{v}' for v in variables])
+    if level_type == 'pressure-levels' or level_type == 'potential-temperature':
+        varin_str = ",".join([f'{v}(:)' for v in variables])
+    varout_str = ",".join([f'{v}' for v in variables])
+    
+    composeNode_command = [f"{os.environ['TEMPESTEXTREMESDIR']}/NodeFileCompose",
+                            "--in_nodefile",f"{stitch_file}",
+                            "--in_nodefile_type", "SN",
+                            "--in_fmt",f"{in_fmt}",
+                            "--snapshots",
+                            "--in_data_list",f"{inputlist}",
+                            "--dx",f"{dx}",
+                            "--resx",f"{resx}",
+                            "--out_grid",f"{grid_type}",
+                            "--out_data",f"{compose_file}",
+                            "--latname",f"{latname}",
+                            "--lonname",f"{lonname}",
+                            "--var",f"{varin_str}",
+                            "--varout",f"{varout_str}",
+                            ]
+    print(*composeNode_command)
+    
+    if not out_command_only:
+        composeNode_process = subprocess.Popen(composeNode_command,
+                                               stdout=subprocess.PIPE, 
+                                               stderr=subprocess.PIPE, text=True)
+    
+        # Wait for the process to complete and capture output
+        stdout, stderr = composeNode_process.communicate()
+    
+        path,_=os.path.split(compose_file)
+        outfile=path+'/composeNode_outlog.txt'
+        with open(outfile, 'w') as file:
+            file.write(stdout)
+        outfile=path+'/composeNode_errlog.txt'
+        with open(outfile, 'w') as file:
+            file.write(stderr)
+        if not quiet:
+             return stdout, stderr
+    
+    os.remove(inputlist)
+
+def assign_lev(ds, level_type):
+    if level_type == 'pressure-levels':
+        level_range = np.array([   1,    2,    3,    5,    7,   10,   20,   30,   50,   70,  100,
+                                 125,  150,  175,  200,  225,  250,  300,  350,  400,  450,  500,
+                                 550,  600,  650,  700,  750,  775,  800,  825,  850,  875,  900,
+                                 925,  950,  975, 1000])
+    if level_type == 'potential-temperature':
+        level_range = np.array([265, 275, 285, 300, 315, 320, 330, 350, 370, 395, 430, 475, 530, 600, 700, 850])
+    ds_lev = ds.assign_coords(level=('level', level_range))
+    return ds_lev
