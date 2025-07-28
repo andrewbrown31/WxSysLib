@@ -231,19 +231,7 @@ def run_nodeCompose(stitch_file, compose_file, in_fmt,
     out_command_only : bool
         *Optional*, default ``False``. If ``True``, will not run the TE command but instead with output the command for terminal use.
     
-    """
-
-    # level type
-    if level_type == 'pressure-levels':
-        ERA5_DIR = '/g/data/rt52/era5/pressure-levels/reanalysis'
-        level_type_short = 'pl'    
-    if level_type == 'potential-temperature':
-        ERA5_DIR = '/g/data/uc16/era5/potential-temperature/oper'
-        level_type_short = 'pt'
-    if level_type == 'single-levels':
-        ERA5_DIR = '/g/data/rt52/era5/single-levels/reanalysis'
-        level_type_short = 'sfc'
-    
+    """    
     # create a "time" column
     df = pd.read_csv(stitch_file, skipinitialspace=True)
     df['time'] = pd.to_datetime({
