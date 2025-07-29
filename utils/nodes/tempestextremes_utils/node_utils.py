@@ -25,7 +25,7 @@ def create_Node_dirstruct(runpath,casename):
     #### Create the detectNodes directory ####
     stitchNodesdir=os.path.join(runpath,casename,'stitchNodes')
     create_directory(stitchNodesdir)
-	#### Create the detectNodes directory ####
+    #### Create the detectNodes directory ####
     nodeFileComposedir=os.path.join(runpath,casename,'nodeFileCompose')
     create_directory(nodeFileComposedir)
     #### Create the detectNodes directory ####
