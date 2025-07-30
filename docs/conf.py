@@ -17,5 +17,5 @@ root_doc = 'index'
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 # -- Options for HTML output -------------------------------------------------
-html_theme = 'groundwork' # Or another theme like 'pydata_sphinx_theme'
+html_theme = 'sphinx_rtd_theme' # Or another theme like 'pydata_sphinx_theme'
 
