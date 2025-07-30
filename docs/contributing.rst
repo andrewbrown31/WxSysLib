@@ -23,13 +23,11 @@ Recipes are Juypter notebooks within WxSysLib that describe the process for trac
 
 Documentation
 ------------------
-All submissions should include documentation descriptions. Documentation in WxSysLib is handled in three parts.
+All submissions should include well-structured documentation of all the functions and recipes. Documentation in WxSysLib is handled in three parts.
 
+1. docstring function documentation
 
-1. In-line utility function documentation
-
-
-2. In-line recipe documentation
+2. In-line recipe commentary documentation
 
 3. readthedocs documentation 
 
