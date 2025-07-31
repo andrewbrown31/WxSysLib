@@ -10,5 +10,8 @@ This section provides an overview of how to get started with My Main Project.
 
    blobs
    nodes
+   diagnostics
+   plotting
+   general
 
 
