@@ -11,17 +11,19 @@ release = '1.0.0'
 #]
 
 extensions = [
-    'sphinx.ext.autodoc',
-    'sphinx.ext.napoleon',
-    'sphinx.ext.doctest',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx_rtd_theme', # Often used with Read the Docs
+    'sphinx.ext.autodoc',       # Core for documenting Python objects
+    'sphinx.ext.napoleon',      # For Google/NumPy style docstrings
+    'sphinx.ext.doctest',       # For runnable examples
+    'sphinx.ext.intersphinx',   # If you link to other Sphinx docs (e.g., Python stdlib)
+    'sphinx.ext.todo',          # For TODO items
+    'sphinx.ext.coverage',      # To check documentation coverage
+    'sphinx.ext.mathjax',       # If you have math in your docstrings/docs
+    'sphinx.ext.ifconfig',      # Conditional content
+    'sphinx.ext.viewcode',      # Links to source code
+    'sphinx.ext.autosectionlabel', # Allows referencing sections by title
+    'sphinx_rtd_theme',         # Common theme for Read the Docs
 ]
+
 
 # The root document.
 root_doc = 'index'
