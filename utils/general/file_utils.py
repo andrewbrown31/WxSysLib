@@ -6,6 +6,11 @@ from tqdm import tqdm
 
 # Create a single directory
 def create_directory(dir_name):
+    """
+    This is the docstring.
+    It should show up.
+    """
+    # ... function body
     try:
         os.mkdir(dir_name)
         print(f"Directory '{dir_name}' created successfully.")
