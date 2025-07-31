@@ -2,7 +2,7 @@ Contribution Guidelines
 ========================
 When contributing to WxSysLib, the following guidelines should be adhered to. 
 
-.. autofunction:: my_module.my_function
+.. autofunction:: nodes.my_module.my_function
 
 Installed packages
 ------------------
