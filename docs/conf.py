@@ -32,6 +32,10 @@ root_doc = 'index'
 # directories to ignore when looking for source files.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
+# Napoleon settings (if you're using Google/NumPy style docstrings)
+napoleon_google_docstring = True
+napoleon_numpy_docstring = False
+
 # -- Options for HTML output -------------------------------------------------
 html_theme = 'sphinx_rtd_theme' # Or another theme like 'pydata_sphinx_theme'
 
