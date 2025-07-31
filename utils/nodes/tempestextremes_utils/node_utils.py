@@ -48,58 +48,73 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
                     quiet=False,
                     out_command_only=False):    
     """
-    This is a short, concise summary of my_function.
+    Detect and track minimum based on TempestExtremes.
 
-    A more detailed explanation of what the function does.
-    It can span multiple lines and describe the overall purpose.
-    You might include examples of usage here.
+    TC detection is based on warm-core criterion from Zarzycki and Ullrich (2017)
+    https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2016GL071606
 
     Parameters
     ----------
-    param1 : int
-        Description of the first parameter. It should be an integer
-        representing some quantity.
-    param2 : str
-        Description of the second parameter. This is a string that
-        could be a name or a path.
-    optional_param : list of float, optional
-        An optional parameter, defaults to None. This should be a list
-        of floating-point numbers.
+    input_filelist : str
+        String with a path to the textfile containing the input data required.
+    detect_filelist : str
+        String with a path to the textfile containing the names of the detectNode output.
+    mpi_np : int, optional
+        Number of cores used in the calculation, given to mpi command.
+        Defaults to 1.
+    searchby : {"min", "max"}, optional
+        Type of extremum to search for. Defaults to "min".
+    detect_var : str, optional
+        String with the variable to detect (must match in the input netcdf file).
+        Defaults to "msl".
+    merge_dist : float, optional
+        Distance for merging nodes. Defaults to 6.0.
+    bounds : list (N=4), optional
+        A list containing the bounds of a bounding box to do detection in the form
+        ``[minlon,maxlon,minlat,maxlat]``. Defaults to None.
+    closedcontour_commands : str, optional
+        String with the closed contour commands. Should be of the form
+        ``<var,op,threshold,dist>`` with commands separated by a ";".
+        Defaults to "msl,200.0,5.5,0;_DIFF(z(300millibars),z(500millibars)),-58.8,6.5,1.0".
+    output_commands : str, optional
+        String with the output commands. Should be of the form ``<var,op,dist>``
+        with commands separated by a ";".
+        Defaults to "msl,min,0;_VECMAG(u10,v10),max,2.0;zs,min,0".
+    timeinterval : str, optional
+        String with the time interval (e.g. "6hr"). Defaults to "6hr".
+    lonname : str, optional
+        String with the longitude variable name, as in the input netcdfs.
+        Defaults to "longitude".
+    latname : str, optional
+        String with the latitude variable name, as in the input netcdfs.
+        Defaults to "latitude".
+    logdir : str, optional
+        String with the path for logfile output. Defaults to "./log/".
+    regional : bool, optional
+        If True, tells TE that it is expecting a regional grid without periodic
+        boundaries. Defaults to False.
+    quiet : bool, optional
+        If True, progress information is suppressed. Defaults to False.
+    out_command_only : bool, optional
+        If True, will not run the TE command but instead with output the
+        command for terminal use. Defaults to False.
 
     Returns
     -------
-    bool
-        True if the operation was successful, False otherwise.
-        A more detailed explanation of the return value can go here.
-
-    Raises
-    ------
-    ValueError
-        If `param1` is negative or `param2` is an empty string.
-    TypeError
-        If `param1` is not an integer.
-
-    See Also
-    --------
-    another_function : Relevant function for related operations.
-    some_class.method : A related method of a class.
+    tuple of (str, str)
+        A tuple containing stdout and stderr from the `DetectNodes` subprocess if
+        `quiet` is False, otherwise nothing.
 
     Notes
     -----
-    This section can contain any additional information about the function,
-    such as algorithms used, limitations, or best practices.
-    It's good for conveying context not directly related to parameters or returns.
+    This function wraps the TempestExtremes `DetectNodes` command.
+    Ensure the `TEMPESTEXTREMESDIR` environment variable is set.
 
     Examples
     --------
-    >>> my_function(10, "hello")
-    True
-    >>> my_function(5, "world", optional_param=[1.0, 2.5])
-    True
-    >>> my_function(-1, "test")
-    Traceback (most recent call last):
-        ...
-    ValueError: param1 cannot be negative.
+    >>> # Assuming you have input and detect filelists ready
+    >>> # stdout, stderr = run_detectNodes("input_files.txt", "detect_output.txt", mpi_np=4)
+    >>> # print("DetectNodes stdout:", stdout)
     """
 
     # DetectNode command
