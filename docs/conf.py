@@ -7,15 +7,13 @@ copyright = '2025, 21st Century Weather'
 version = '1.0'
 release = '1.0.0'
 
-#extensions = [
-#    'sphinx.ext.autodoc',
-#    'sphinx.ext.napoleon', # For Google/NumPy style docstrings
-#    'sphinx.ext.intersphinx',
-#    'sphinx.ext.viewcode',
-#]
-
+# Get the directory of the current conf.py file (which is 'docs/')
 current_dir = os.path.dirname(__file__)
-project_root = os.path.abspath(os.path.join(current_dir, '..', '..')) # Adjust as needed
+
+# Go up one level from 'docs/' to reach 'my_project/'
+project_root = os.path.abspath(os.path.join(current_dir, '..'))
+
+# Add 'my_project/' to sys.path
 sys.path.insert(0, project_root)
 
 extensions = [
