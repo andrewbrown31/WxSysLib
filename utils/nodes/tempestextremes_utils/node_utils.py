@@ -48,7 +48,9 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
                     quiet=False,
                     out_command_only=False):
     
-    ''' Detect and track minimum based on TempestExtremes
+    """ 
+    Detect and track minimum based on TempestExtremes
+    
     TC detection is based on warm-core criterion from Zarzycki and Ullrich (2017)
     https://agupubs.onlinelibrary.wiley.com/doi/10.1002/2016GL071606
     
@@ -83,7 +85,7 @@ def run_detectNodes(input_filelist, detect_filelist, mpi_np=1,
         *Optional*, default ``False``. If ``True``, progress information is suppressed.
     out_command_only : bool
         *Optional*, default ``False``. If ``True``, will not run the TE command but instead with output the command for terminal use.
-    '''
+    """
 
     # DetectNode command
     detectNode_command = ["mpirun", "-np", f"{int(mpi_np)}",
