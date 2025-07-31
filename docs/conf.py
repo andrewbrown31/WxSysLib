@@ -16,6 +16,10 @@ project_root = os.path.abspath(os.path.join(current_dir, '..'))
 # Add 'my_project/' to sys.path
 sys.path.insert(0, project_root)
 
+# Verify the path (optional, for debugging)
+print(f"Adding to sys.path: {project_root}")
+print(f"Sys path: {sys.path}")
+
 extensions = [
     'sphinx.ext.autodoc',       # Core for documenting Python objects
     'sphinx.ext.napoleon',      # For Google/NumPy style docstrings
