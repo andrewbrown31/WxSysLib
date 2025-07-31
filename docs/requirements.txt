@@ -1,3 +1,5 @@
 numpy
+pandas
+tqdm
 sphinx
 sphinx_rtd_theme
