@@ -8,13 +8,15 @@ version = '1.0'
 release = '1.0.0'
 
 # Get the directory of the current conf.py file (which is 'docs/')
-current_dir = os.path.dirname(__file__)
+#current_dir = os.path.dirname(__file__)
 
 # Go up one level from 'docs/' to reach 'my_project/'
-project_root = os.path.abspath(os.path.join(current_dir, '..'))
+#project_root = os.path.abspath(os.path.join(current_dir, '..'))
 
 # Add 'my_project/' to sys.path
-sys.path.insert(0, project_root)
+#sys.path.insert(0, project_root)
+
+sys.path.insert(0, os.path.abspath('../../')) # Adjust path as needed
 
 # Verify the path (optional, for debugging)
 print(f"Adding to sys.path: {project_root}")
