@@ -2,10 +2,6 @@ Contribution Guidelines
 ========================
 When contributing to WxSysLib, the following guidelines should be adhered to. 
 
-.. autofunction:: utils.nodes.tempestextremes_utils.node_utils.run_detectNodes
-
-.. autofunction:: utils.nodes.tempestextremes_utils.my_module.my_function
-
 Installed packages
 ------------------
 The code within WxSysLib are python-based functions and tools which are largely built on top of well-established libraries and tools in a variety of languages. Any package dependencies should be clearly noted in any documentation and function descriptions. For Australian and NCI users, these packages are installed locally on NCI. Any additional libraries should be installed into the NCI WxSysLib toolbox in consultation with the NCI project owners and the WxSysLib working group. All python library dependencies should be installed in the NCI WxSysLib conda environment. 
