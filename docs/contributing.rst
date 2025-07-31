@@ -2,6 +2,8 @@ Contribution Guidelines
 ========================
 When contributing to WxSysLib, the following guidelines should be adhered to. 
 
+.. autofunction:: utils.nodes.tempestextremes_utils.node_utils.run_detectNodes
+
 .. autofunction:: nodes.my_module.my_function
 
 Installed packages
