@@ -1,4 +1,4 @@
-"Node" utility fucntions
+"Node" utility functions
 ========================
 
 TEST
