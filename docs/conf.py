@@ -1,3 +1,6 @@
+import os 
+import numpy
+
 project = 'WxSysLib'
 copyright = '2025, 21st Century Weather'
 version = '1.0'
@@ -9,6 +12,10 @@ release = '1.0.0'
 #    'sphinx.ext.intersphinx',
 #    'sphinx.ext.viewcode',
 #]
+
+current_dir = os.path.dirname(__file__)
+project_root = os.path.abspath(os.path.join(current_dir, '..', '..')) # Adjust as needed
+sys.path.insert(0, project_root)
 
 extensions = [
     'sphinx.ext.autodoc',       # Core for documenting Python objects
