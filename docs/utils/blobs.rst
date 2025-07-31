@@ -1,4 +1,4 @@
-BLOBS
+"Blob" utility functions
 ========================
 
 
