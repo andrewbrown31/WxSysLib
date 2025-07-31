@@ -1,4 +1,5 @@
 numpy
+xarray
 pandas
 tqdm
 futures
