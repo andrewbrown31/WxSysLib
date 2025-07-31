@@ -2,7 +2,7 @@ Contribution Guidelines
 ========================
 When contributing to WxSysLib, the following guidelines should be adhered to. 
 
-.. autofunction:: general.file_utils.create_directory
+.. autofunction:: my_module.my_function
 
 Installed packages
 ------------------
