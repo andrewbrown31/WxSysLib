@@ -11,7 +11,7 @@ import sys
 # └── src/
 #     └── my_module/
 #         └── __init__.py
-sys.path.insert(0, os.path.abspath('../../')) # Adjust path as needed
+sys.path.insert(0, os.path.abspath('../../utils')) # Adjust path as needed
 
 project = 'WxSysLib'
 copyright = '2025, 21st Century Weather'
