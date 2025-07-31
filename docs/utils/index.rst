@@ -1,5 +1,5 @@
-Getting Started
-===============
+Python Utility Functions
+========================
 
 .. toctree::
    :maxdepth: 1
