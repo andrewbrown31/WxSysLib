@@ -34,7 +34,7 @@ def create_Node_dirstruct(runpath,casename):
     
     return casedir,inputdir,detectNodesdir,stitchNodesdir,logsdir
 
-def my_function(param1, param2, optional_param=None):
+def my_function2(param1, param2, optional_param=None):
     """
     This is a short, concise summary of my_function.
 
