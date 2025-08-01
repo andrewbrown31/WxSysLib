@@ -1,3 +1,30 @@
 .wy-nav-content {
     max-width: 1920px !important;
 }
+
+/* Fix excessive vertical whitespace in function and class signatures */
+.rst-content dl .sig dl,
+.rst-content dl .sig dd {
+    margin-bottom: 0;
+}
+
+/* Force each parameter to a new line for better readability on long signatures */
+.rst-content dl.class .sig-name,
+.rst-content dl.function .sig-name {
+    /* Ensure the name of the function is on its own line */
+    display: block;
+}
+
+.rst-content .sig-paren,
+.rst-content .sig-args {
+    /* Make the entire parameter list block display cleanly */
+    display: block;
+    margin-top: 5px;
+    margin-left: 20px; /* Optional: Indent the parameters */
+}
+
+/* Make sure the closing parenthesis is on a new line */
+.rst-content .sig-paren:last-of-type {
+    display: block;
+    margin-left: 0;
+}
