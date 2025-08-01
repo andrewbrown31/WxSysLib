@@ -8,7 +8,10 @@ This section provides an overview of all of recipes within WxSysLib. Recipes dra
 .. toctree::
    :maxdepth: 2
 
-`Tropical Cyclone Recipes <../../recipes/tropical_cyclones>`_ 
+   recipes/tropical_cyclones.ipynb
+
+`Tropical Cyclone Recipes <recipes/tropical_cyclones_tropical_cyclone_era5.ipynb>`_ 
 ________________________
 
+notebooks/getting_started.ipynb
 
