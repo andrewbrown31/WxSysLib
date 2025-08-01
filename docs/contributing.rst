@@ -30,11 +30,19 @@ All submissions should include well-structured documentation of all the function
 Python documentation strings (or docstrings) provide a convenient way of associating documentation with Python modules, functions, classes, and methods. Docstrings are added to the source code and articulate what the function does, not how.
 
 There are a number of different styles of doctrings. WxSysLib makes use of the `NumpyDoc <https://numpydoc.readthedocs.io/en/latest/format.html>`_ docstring style. WxSysLib docstrings should contain:
+
 - A brief description of the function and what it is does
 - Parameters required for input, including the data type
 - Returned output
 
-2. In-line recipe commentary documentation
+2. Recipe comments
+
+Recipes added to WxSysLib should clearly describe and comment on the processes they perform. By default, Recipes are Jupyter notebooks with markdown comments and descriptions, describing each command and process. Recipes should contain:
+
+- A description of the overall recipe, what it does and wwith which methods
+- Citations that a user would need to include. This includes original developers of the underlying libraries and tools and the original publication the recipe was developed for. 
+- Headline comments of each command and function, what it does and what output may be expected
+- A unit test with output that can be compared if run successfully (for example, a plot of tracked cyclones over a month). A good example will highlight and demonstrate all of the features of the recipe. 
 
 3. readthedocs documentation 
 
