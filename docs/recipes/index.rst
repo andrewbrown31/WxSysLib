@@ -1,5 +1,6 @@
 .. _recipes:
 
+=======
 Recipes
 =======
 
@@ -8,10 +9,11 @@ This section provides an overview of all of recipes within WxSysLib. Recipes dra
 .. toctree::
    :maxdepth: 2
 
-   recipes/tropical_cyclones.ipynb
+`Tropical Cyclone Recipes <https://github.com/21centuryweather/WxSysLib/blob/main/recipes/tropical_cyclones>`_ 
+=======
 
-`Tropical Cyclone Recipes <recipes/tropical_cyclones_tropical_cyclone_era5.ipynb>`_ 
-________________________
+Tropical Cyclone Tracking in ERA5 (TempestExtremes)
+___________________________________________________
 
-notebooks/getting_started.ipynb
+
 
