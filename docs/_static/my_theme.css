@@ -3,16 +3,16 @@
 }
 
 /* This rule increases the vertical spacing between each parameter line */
-dl.field-list dt {
+/*dl.field-list dt {
     margin-bottom: 0.5em; 
-}
+}*/
 
 /* This rule adds spacing between the parameter name and its type */
-.field-list .field-name .classifier {
+/*.field-list .field-name .classifier {
     padding-left: 0.5em; 
-}
+}*/
 
 /* This rule adjusts the spacing for multiline parameter descriptions */
-dl.field-list dd {
+/*dl.field-list dd {
     padding-left: 2em; 
-}
+}*/
