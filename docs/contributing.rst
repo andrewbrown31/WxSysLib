@@ -29,9 +29,10 @@ All submissions should include well-structured documentation of all the function
 
 Python documentation strings (or docstrings) provide a convenient way of associating documentation with Python modules, functions, classes, and methods. Docstrings are added to the source code and articulate what the function does, not how.
 
-There are a number of different styles of doctrings. WxSysLib makes use of the `External Link <https://example.com>`_
-
-<a href="https://numpydoc.readthedocs.io/en/latest/format.html">"NumpyDoc"</a> docstring convention
+There are a number of different styles of doctrings. WxSysLib makes use of the `NumpyDoc <https://numpydoc.readthedocs.io/en/latest/format.html>`_ docstring style. WxSysLib docstrings should contain:
+- A brief description of the function and what it is does
+- Parameters required for input, including the data type
+- Returned output
 
 2. In-line recipe commentary documentation
 
