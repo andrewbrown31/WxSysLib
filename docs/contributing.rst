@@ -22,7 +22,7 @@ Recipes
 Recipes are Juypter notebooks within WxSysLib that describe the process for tracking and diagnosis of particular features. Where possible, recipes should be easy to read and rely on a series of utility functions. Recipies are located in the recipies directory and categorised by meteorological phenomenon (for example: tropical_cyclones, extratropical_cyclones, blocking). Recipes that use different techniques to track and diagnose similar phenomena are encouraged! For example, although there is a recipe tracking tropical cyclones using TempestExtremes already in WxSysLib, recipes that use another tool/process to track tropical cyclones are encouraged. 
 
 Documentation
-------------------
+-------------
 All submissions should include well-structured documentation of all the functions and recipes. Documentation in WxSysLib is handled in three parts.
 
 1. Python function docstrings
@@ -45,5 +45,11 @@ Recipes added to WxSysLib should clearly describe and comment on the processes t
 - A unit test with output that can be compared if run successfully (for example, a plot of tracked cyclones over a month). A good example will highlight and demonstrate all of the features of the recipe. 
 
 3. readthedocs documentation 
+
+All functions and recipes that are added into WxSysLib should be documented in the WxSysLib readthedocs documentation. 
+
+- Python utility functions are documented in the readthedocs by their docstrings. These are automatically pulled in. Ensure your functions have been added to the readthedocs after submission
+
+- Recipes are documented in the readthedocs as a list of available recipes. Recipes documentation should contained the filename of the recipe, its name and a brief description of what it does. This is added to 
 
 
