@@ -50,6 +50,6 @@ All functions and recipes that are added into WxSysLib should be documented in t
 
 - Python utility functions are documented in the readthedocs by their docstrings. These are automatically pulled in. Ensure your functions have been added to the readthedocs after submission
 
-- Recipes are documented in the readthedocs as a list of available recipes. Recipes documentation should contained the filename of the recipe, its name and a brief description of what it does. This is added to 
+- Recipes are documented in the readthedocs as a list of available recipes. Recipes documentation should contained the filename of the recipe, its name and a brief description of what it does. This is added to the docs/recipes/index.rst file. 
 
 
