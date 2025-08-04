@@ -15,7 +15,6 @@ def modify_traj(lagranto_traj_dir):
     df = pd.read_csv(lagranto_traj_dir,sep='\s+',
                      skiprows=[0,1,3],     
                      header=0)
-    df['lon'] = [lon360to180(lon) for lon in df['lon']]
     df['track_id'] = (df['time'] == 0.0).cumsum()
     return df
 
