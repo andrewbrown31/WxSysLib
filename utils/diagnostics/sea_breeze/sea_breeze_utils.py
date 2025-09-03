@@ -722,3 +722,80 @@ def gaussian_filter_time_slice(time_slice,sigma,axes):
     out_ds = out_ds.expand_dims("time")
     out_ds["time"] = time_slice.time
     return out_ds    
+
+def hourly_change(q, t, u, v, angle_da, spatial_dims = ["lat","lon"], spatial_chunks=["auto","auto"]):
+
+    """
+    Calculate hourly changes in specific humidity, temperature, and onshore wind speed.
+
+    Parameters
+    ----------
+    q : xarray.DataArray
+        Specific humidity in kg/kg.
+    t : xarray.DataArray
+        Air temperature in degrees Celsius.
+    u : xarray.DataArray
+        U-component of wind in m/s.
+    v : xarray.DataArray
+        V-component of wind in m/s.
+    angle_da : xarray.DataArray
+        Coastline orientation angles.
+    spatial_dims : list of str, optional
+        List of spatial dimensions to chunk. Default is ["lat", "lon"].
+    spatial_chunks : list, optional
+        List of spatial chunk sizes. Default is ["auto", "auto"].
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset containing hourly changes in onshore wind speed, specific humidity, and temperature.
+
+    Notes
+    -----
+    Data is rechunked in the spatial dimensions with a chunk size of -1 in the time dimension to allow computation of differences.
+    """
+
+    #Rechunk data in one time dim
+    for i in range(len(spatial_dims)):
+        q = q.chunk({"time":-1,spatial_dims[i]:spatial_chunks[i]})
+        u = u.chunk({"time":-1,spatial_dims[i]:spatial_chunks[i]})
+        v = v.chunk({"time":-1,spatial_dims[i]:spatial_chunks[i]})
+        t = t.chunk({"time":-1,spatial_dims[i]:spatial_chunks[i]})
+
+    #Convert hus to g/kg 
+    q = q * 1000
+    
+    #Rotate the winds to be cross-shore (uprime) and along-shore (vprime)
+    uprime, vprime = rotate_wind(u,v,angle_da)
+
+    #Calculate the rate of change
+    wind_change = vprime.diff("time")
+    q_change = q.diff("time")
+    t_change = t.diff("time")  
+
+    if "height" in list(wind_change.coords.keys()):
+        wind_change = wind_change.drop_vars("height")
+    if "height" in list(wind_change.coords.keys()):        
+        t_change = t_change.drop_vars("height")
+    if "height" in list(q_change.coords.keys()):        
+        q_change = q_change.drop_vars("height")     
+
+    ds = xr.Dataset(
+        {"wind_change":wind_change,
+         "q_change":q_change,
+         "t_change":t_change,
+            }).persist()
+    ds["wind_change"] = ds["wind_change"].assign_attrs(
+        units = "m/s/h",
+        long_name = "Onshore wind speed rate of change",
+        description = "Rate of change of onshore wind speed in m/s/h.")
+    ds["t_change"] = ds["t_change"].assign_attrs(
+        units = "K/h",
+        long_name = "Local temperature rate of change.",
+        description = "Rate of change of temperature.")      
+    ds["q_change"] = ds["q_change"].assign_attrs(
+        units = "g/kg/h",
+        long_name = "Local specific humidity rate of change.",
+        description = "Rate of change of specific humidity.")  
+    
+    return ds
