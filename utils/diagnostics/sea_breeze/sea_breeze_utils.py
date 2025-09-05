@@ -8,6 +8,7 @@ import warnings
 import datetime as dt
 from skimage.segmentation import find_boundaries
 from dask.distributed import progress
+import glob
 
 def vert_mean_wind(wind_ds,mean_heights,vert_coord):
     
@@ -643,6 +644,127 @@ def load_aus2200_variable(vname, t1, t2, exp_id, lon_slice, lat_slice, freq, hgt
         da = da.assign_attrs({"gaussian_smoothing_sigma":sigma})
 
     return da    
+
+def load_barra_variable(vname, t1, t2, domain_id, freq, lat_slice, lon_slice, chunks="auto", smooth=False, sigma=2, smooth_axes=None):
+
+    """
+    Load a variable from the BARRA dataset.
+
+    Parameters
+    ----------
+    vname : str
+        Name of BARRA variable to load.
+    t1 : str
+        Start time in "%Y-%m-%d %H:%M".
+    t2 : str
+        End time in "%Y-%m-%d %H:%M".
+    domain_id : str
+        BARRA domain, either "AUS-04", "AUST-11" or "AUS-11".
+    freq : str
+        Frequency string ("20min", "1hr", "3hr", "day", "mon").
+    lat_slice : slice or array-like
+        Slice or indices to restrict latitude domain.
+    lon_slice : slice or array-like
+        Slice or indices to restrict longitude domain.
+    chunks : dict or str, optional
+        Chunking for xarray open_mfdataset (default is "auto").
+    smooth : bool, optional
+        If True, smooth the data using a Gaussian filter.
+    sigma : float, optional
+        Sigma value for the Gaussian filter if smoothing.
+    smooth_axes : iterable, optional
+        Axes to smooth over if smoothing.
+
+    Returns
+    -------
+    da : xarray.DataArray
+        The requested variable, optionally smoothed.
+
+    """
+
+    if domain_id in ["AUST-04"]:
+        model = "BARRA-C2"
+    elif domain_id in ["AUST-11","AUS-11"]:
+        model = "BARRA-R2"
+    else:
+        raise ValueError("Invalid domain id for " +domain_id)
+
+    if freq not in ["20min", "1hr", "3hr", "day", "mon"]:
+        raise ValueError("Invalid frequency " +freq)
+
+    #Set up files to load based on given times
+    times = pd.date_range(pd.to_datetime(t1).replace(day=1),t2,freq="MS").strftime("%Y%m").astype(int).values
+    files = [glob.glob("/g/data/ob53/BARRA2/output/reanalysis/"\
+                    +domain_id+"/BOM/ERA5/historical/hres/"+model+\
+                        "/v1/"+freq+"/"+vname+"/latest/"+\
+                            vname+"_"+domain_id+"_*_"+str(t)+"-*.nc") for t in times]
+
+    #Load the data
+    da = xr.open_mfdataset(
+        np.concatenate(files),
+        chunks=chunks).\
+                sel(lon=lon_slice, lat=lat_slice, time=slice(t1,t2))[vname]
+    
+    #Optional smoothing
+    da = da.assign_attrs({"smoothed":smooth})
+    if smooth:
+        if smooth_axes is not None:
+            for ax in smooth_axes:
+                chunks[ax] = -1
+            smooth_axes = (np.where(np.in1d(da.isel(time=0).dims,smooth_axes))[0])
+        else:
+            chunks["lon"] = -1
+            chunks["lat"] = -1
+
+        da = da.map_blocks(
+            gaussian_filter_time_slice,
+            kwargs={"sigma":sigma,"axes":smooth_axes},
+            template=da
+        )
+        da = da.assign_attrs({"gaussian_smoothing_sigma":sigma})
+        
+    return da
+
+def load_barra_static(domain_id,lon_slice,lat_slice):
+    """
+    Load static variables for a BARRA domain.
+
+    Parameters
+    ----------
+    domain_id : str
+        Identifier for the BARRA domain. Accepted values are "AUST-04", "AUST-11", or "AUS-11".
+    lon_slice : slice
+        Slice object to restrict the longitude domain.
+    lat_slice : slice
+        Slice object to restrict the latitude domain.
+
+    Returns
+    -------
+    orog : xarray.DataArray
+        Orography data for the specified domain and region.
+    lsm : xarray.DataArray
+        Land-sea mask for the specified domain and region, where land is represented by 1 and sea by 0.
+    """
+
+    if domain_id in ["AUST-04"]:
+        model = "BARRA-C2"
+    elif domain_id in ["AUST-11","AUS-11"]:
+        model = "BARRA-R2"
+    else:
+        raise ValueError("Invalid domain id for " +domain_id)
+
+    orog_path = "/g/data/ob53/BARRA2/output/reanalysis/"\
+                    +domain_id+"/BOM/ERA5/historical/hres/"+model+\
+                        "/v1/fx/orog/latest/"+\
+                            "orog_*.nc"
+    lsm_path = "/g/data/ob53/BARRA2/output/reanalysis/"\
+                    +domain_id+"/BOM/ERA5/historical/hres/"+model+\
+                        "/v1/fx/sftlf/latest/"+\
+                            "sftlf*.nc"
+    orog = xr.open_mfdataset(orog_path).sel(lon=lon_slice, lat=lat_slice)
+    lsm = xr.open_mfdataset(lsm_path).sel(lon=lon_slice, lat=lat_slice)
+
+    return orog.orog, (lsm.sftlf >= 50) * 1
 
 def interp_model_level_to_z(z_da,var_da,mdl_dim,heights,model="ERA5"):
 

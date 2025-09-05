@@ -616,7 +616,7 @@ def land_sea_temperature_diff_rolling_max(ts,lsm,R_km,dy,dx):
     """
     Calculate the land-sea temperature difference for each point in the domain.
 
-    For each point, the land temperature is filtered with a rolling maximum over a radius of R km.
+    For each point, the land temperature is filtered with a rolling maximum over a radius of R km, considering land points only.
     Then, for each point, the land-sea temperature difference is calculated as the difference between the closest land and closest sea point.
 
     Parameters
@@ -683,7 +683,7 @@ def land_sea_temperature_diff_rolling_max(ts,lsm,R_km,dy,dx):
 
     #Apply the rolling max filter
     land_ts = xr.DataArray(
-        scipy.ndimage.maximum_filter(ts,footprint=footprint),
+        scipy.ndimage.maximum_filter(ts.where(lsm==1,-999),footprint=footprint),
         coords=ts.coords, dims=ts.dims)
 
     #Function to index the ts DataArray using the target latitudes and longitudes
